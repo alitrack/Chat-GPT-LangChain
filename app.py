@@ -85,7 +85,6 @@ with block:
                              placeholder="What's the answer to life, the universe, and everything?",
                              lines=1)
         submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
-        test = gr.Button(value="Test", variant="secondary").style(full_width=False)
 
     gr.Examples(
         examples=["How many people live in Canada?",
@@ -109,9 +108,8 @@ with block:
     state = gr.State()
     agent_state = gr.State()
 
-    submit.click(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
     message.submit(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
-    test.click(do_html_video_speak, inputs=[message], outputs=[video_html, my_file])
+    submit.click(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox, agent_state],
