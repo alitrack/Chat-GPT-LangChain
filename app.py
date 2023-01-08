@@ -31,14 +31,17 @@ def chat(inp, history, agent):
     history = history or []
     output = agent.run(inp)
     history.append((inp, output))
-    return history, history
+
+    html_video, temp_file = do_html_video_speak(output)
+
+    return history, history, html_video, temp_file
 
 
-def do_html_video_speak(testing):
+def do_html_video_speak(words_to_speak):
     headers = {"Authorization": f"Bearer {os.environ['EXHUMAN_API_KEY']}"}
     body = {
         'bot_name': 'Masahiro',
-        'bot_response': 'This is a test. This is a test. This is a test. This is a test. This is a test',
+        'bot_response': words_to_speak,
         'voice_name': 'Masahiro-EN'
     }
     api_endpoint = "https://api.exh.ai/animations/v1/generate_lipsync"
@@ -51,7 +54,7 @@ def do_html_video_speak(testing):
             f.write(response_stream.read())
         temp_file = gr.File("videos/tempfile.mp4")
         temp_file_url = "/file=" + temp_file.value['name']
-        html_video = f'<video width="256" height="256" autoplay><source src={temp_file_url} type="video/mp4"></video>'
+        html_video = f'<video width="256" height="256" autoplay><source src={temp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
     else:
         print('video url unknown')
     return html_video, "videos/tempfile.mp4"
@@ -68,13 +71,7 @@ with block:
         htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
         video_html = gr.HTML(htm_video)
 
-        # video_html = gr.HTML("f'<video width=\"512\" height=\"512\" autoplay><source src={tmp_file_url} type=\"video/mp4\"></video>")
-
-        # video_html = gr.HTML("""<video width="100%" height="100%" controls autoplay loop>
-        # <source src="videos/Masahiro.mp4"
-        # type="video/mp4"></video>""")
-
-        gr.Markdown("<h3><center>LangChain AI</center></h3>")
+        gr.Markdown("<h3><center>Q&A GPT3.5/LangChain</center></h3>")
 
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                show_label=False, lines=1, type='password')
@@ -110,8 +107,8 @@ with block:
     state = gr.State()
     agent_state = gr.State()
 
-    submit.click(chat, inputs=[message, state, agent_state], outputs=[chatbot, state])
-    message.submit(chat, inputs=[message, state, agent_state], outputs=[chatbot, state])
+    submit.click(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
+    message.submit(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
     test.click(do_html_video_speak, inputs=[message], outputs=[video_html, my_file])
 
     openai_api_key_textbox.change(set_openai_api_key,
