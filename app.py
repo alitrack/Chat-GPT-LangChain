@@ -64,19 +64,21 @@ block = gr.Blocks(css=".gradio-container {background-color: lightgray}")
 
 with block:
     with gr.Row():
-        my_file = gr.File(label="Upload a file", type="file", visible=False)
-
-        tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
-        tmp_file_url = "/file=" + tmp_file.value['name']
-        htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
-        video_html = gr.HTML(htm_video)
-
         gr.Markdown("<h3><center>Q&A GPT3.5/LangChain</center></h3>")
 
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                show_label=False, lines=1, type='password')
 
-    chatbot = gr.Chatbot()
+    with gr.Row():
+        with gr.Column(scale=0.25, min_width=240):
+            my_file = gr.File(label="Upload a file", type="file", visible=False)
+            tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
+            tmp_file_url = "/file=" + tmp_file.value['name']
+            htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
+            video_html = gr.HTML(htm_video)
+
+        with gr.Column(scale=0.75):
+            chatbot = gr.Chatbot()
 
     with gr.Row():
         message = gr.Textbox(label="What's your question?",
