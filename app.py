@@ -46,14 +46,13 @@ def chat(
     print("inp: " + inp)
     history = history or []
     # If chain is None, that is because no API key was provided.
-    if chain is None:
-        history.append((inp, "Please paste your OpenAI key to use"))
-        return history, history, None, None
-    # Run chain and append input.
-    output = chain.run(input=inp)
+    output = "Please paste your OpenAI key to use this application."
+    if chain and chain != "":
+        # Run chain and append input.
+        output = chain.run(input=inp)
     history.append((inp, output))
     html_video, temp_file = do_html_video_speak(output)
-    return history, history, html_video, temp_file
+    return history, history, html_video, temp_file, ""
 
 
 def do_html_video_speak(words_to_speak):
@@ -83,7 +82,8 @@ block = gr.Blocks(css=".gradio-container {background-color: lightgray}")
 
 with block:
     with gr.Row():
-        gr.Markdown("<h3><center>Q&A GPT3.5/LangChain</center></h3>")
+        with gr.Column():
+            gr.Markdown("<h4><center>Conversational Agent using GPT-3.5 & LangChain</center></h4>")
 
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                show_label=False, lines=1, type='password')
@@ -107,7 +107,7 @@ with block:
 
     gr.Examples(
         examples=["How many people live in Canada?",
-                  "What is 13**.3?",
+                  "What is 2 to the 30th power?",
                   "How much did it rain in SF today?",
                   "Get me information about the movie 'Avatar'",
                   "What are the top tech headlines in the US?",
@@ -117,22 +117,22 @@ with block:
     )
 
     gr.HTML("""
-    This simple application demonstrates some capabilities of GPT-3 in conjunction with the open source
-    LangChain library. It consists of an agent (backed by a GPT-3 language model) using tools to 
-    answer/execute questions. It is based upon
-     <a href="https://colab.research.google.com/drive/1ZiU0zU17FeLWKkRbxB6AB_NfqvenJkGF"> this Jupyter notebook</a>.""")
+    This simple application demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
+    When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
+    On a desktop, the agent will often speak using using an animated avatar from 
+    <a href='https://exh.ai/'>Ex-Human</a>.""")
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
     state = gr.State()
-    agent_state = gr.State()
+    chain_state = gr.State()
 
-    message.submit(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
-    submit.click(chat, inputs=[message, state, agent_state], outputs=[chatbot, state, video_html, my_file])
+    message.submit(chat, inputs=[message, state, chain_state], outputs=[chatbot, state, video_html, my_file, message])
+    submit.click(chat, inputs=[message, state, chain_state], outputs=[chatbot, state, video_html, my_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
-                                  inputs=[openai_api_key_textbox, agent_state],
-                                  outputs=[agent_state])
+                                  inputs=[openai_api_key_textbox, chain_state],
+                                  outputs=[chain_state])
 
 block.launch(debug = True)
 
