@@ -1,39 +1,58 @@
 import io
 import os
+from typing import Optional, Tuple
 import datetime
-import openai
 import gradio as gr
 import requests
+from langchain import ConversationChain
 
-from langchain.agents import load_tools, initialize_agent, get_all_tool_names
+from langchain.agents import load_tools, initialize_agent
+from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
 
+def load_chain():
+    """Logic for loading the chain you want to use should go here."""
+    llm = OpenAI(temperature=0)
+    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+
+    memory = ConversationBufferMemory(memory_key="chat_history")
+
+    tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
+    chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
+    return chain
+
+
 def set_openai_api_key(api_key, agent):
+    """Set the api key and return chain.
+
+    If no api_key, then None is returned.
+    """
     if api_key:
-        tool_names = get_all_tool_names()
-
         os.environ["OPENAI_API_KEY"] = api_key
-        llm = OpenAI(model_name="text-davinci-003", temperature=0)
+        chain = load_chain()
         os.environ["OPENAI_API_KEY"] = ""
-
-        tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
-        agent = initialize_agent(tools, llm, agent="zero-shot-react-description", verbose=True)
-        return agent
+        return chain
 
 
-def chat(inp, history, agent):
+def chat(
+    inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain]
+):
+    """Execute the chat functionality."""
     print("\n==== date/time: " + str(datetime.datetime.now()) + " ====")
     print("inp: " + inp)
     history = history or []
-    output = agent.run(inp)
+    # If chain is None, that is because no API key was provided.
+    if chain is None:
+        history.append((inp, "Please paste your OpenAI key to use"))
+        return history, history, None, None
+    # Run chain and append input.
+    output = chain.run(input=inp)
     history.append((inp, output))
-
     html_video, temp_file = do_html_video_speak(output)
-
     return history, history, html_video, temp_file
 
 
