@@ -2,5 +2,6 @@ openai==0.26.0
 gradio==3.16.1
 google-search-results
 google-api-python-client
-langchain==0.0.58
+langchain==0.0.59
 requests~=2.28.1
+git+https://github.com/openai/whisper.git

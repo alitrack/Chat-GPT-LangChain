@@ -13,6 +13,37 @@ from langchain.llms import OpenAI
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
+import whisper
+
+WHISPER_MODEL = whisper.load_model("tiny")
+print("WHISPER_MODEL", WHISPER_MODEL)
+
+
+def transcribe(aud_inp):
+    if aud_inp is None:
+        return ""
+
+    # load audio and pad/trim it to fit 30 seconds
+    aud = whisper.load_audio(aud_inp)
+    aud = whisper.pad_or_trim(aud)
+
+    # make log-Mel spectrogram and move to the same device as the model
+    mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+
+    # detect the spoken language
+    _, probs = WHISPER_MODEL.detect_language(mel)
+
+    # decode the audio
+    options = whisper.DecodingOptions()
+    result = whisper.decode(WHISPER_MODEL, mel, options)
+
+    print("result.text", result.text)
+
+    result_text = ""
+    if result and result.text:
+        result_text = result.text
+    return result_text
+
 
 def load_chain():
     """Logic for loading the chain you want to use should go here."""
@@ -100,10 +131,15 @@ with block:
             chatbot = gr.Chatbot()
 
     with gr.Row():
-        message = gr.Textbox(label="What's your question?",
+        message = gr.Textbox(label="What's on your mind??",
                              placeholder="What's the answer to life, the universe, and everything?",
                              lines=1)
         submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
+
+    with gr.Row():
+        audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+                                   interactive=True, streaming=False)
+        audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
 
     gr.Examples(
         examples=["How many people live in Canada?",
