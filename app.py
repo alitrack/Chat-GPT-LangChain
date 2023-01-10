@@ -4,6 +4,10 @@ from typing import Optional, Tuple
 import datetime
 import gradio as gr
 import requests
+
+import warnings
+import whisper
+
 from langchain import ConversationChain
 
 from langchain.agents import load_tools, initialize_agent
@@ -13,8 +17,7 @@ from langchain.llms import OpenAI
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
-import whisper
-
+warnings.filterwarnings("ignore")
 WHISPER_MODEL = whisper.load_model("tiny")
 print("WHISPER_MODEL", WHISPER_MODEL)
 
@@ -48,11 +51,15 @@ def transcribe(aud_inp):
 def load_chain():
     """Logic for loading the chain you want to use should go here."""
     llm = OpenAI(temperature=0)
-    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+
+    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'tmdb-api']
+    # tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
 
     memory = ConversationBufferMemory(memory_key="chat_history")
 
-    tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
+    tools = load_tools(tool_names, llm=llm, tmdb_bearer_token=tmdb_bearer_token)
+    # tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
+
     chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
     return chain
 
