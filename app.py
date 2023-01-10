@@ -52,12 +52,12 @@ def load_chain():
     """Logic for loading the chain you want to use should go here."""
     llm = OpenAI(temperature=0)
 
-    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'tmdb-api']
+    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects']
     # tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
 
     memory = ConversationBufferMemory(memory_key="chat_history")
 
-    tools = load_tools(tool_names, llm=llm, tmdb_bearer_token=tmdb_bearer_token)
+    tools = load_tools(tool_names, llm=llm)
     # tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
 
     chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
