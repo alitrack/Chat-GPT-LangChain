@@ -160,7 +160,7 @@ with block:
     )
 
     gr.HTML("""
-    This simple application demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
+    This application demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
     When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
     On a desktop, the agent will often speak using using an animated avatar from 
     <a href='https://exh.ai/'>Ex-Human</a>.""")
