@@ -5,8 +5,9 @@ import datetime
 import gradio as gr
 import requests
 
-import warnings
-import whisper
+# UNCOMMENT TO USE WHISPER
+# import warnings
+# import whisper
 
 from langchain import ConversationChain
 
@@ -17,35 +18,26 @@ from langchain.llms import OpenAI
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
-warnings.filterwarnings("ignore")
-WHISPER_MODEL = whisper.load_model("tiny")
-print("WHISPER_MODEL", WHISPER_MODEL)
+# UNCOMMENT TO USE WHISPER
+# warnings.filterwarnings("ignore")
+# WHISPER_MODEL = whisper.load_model("tiny")
+# print("WHISPER_MODEL", WHISPER_MODEL)
 
 
-def transcribe(aud_inp):
-    if aud_inp is None:
-        return ""
-
-    # load audio and pad/trim it to fit 30 seconds
-    aud = whisper.load_audio(aud_inp)
-    aud = whisper.pad_or_trim(aud)
-
-    # make log-Mel spectrogram and move to the same device as the model
-    mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
-
-    # detect the spoken language
-    _, probs = WHISPER_MODEL.detect_language(mel)
-
-    # decode the audio
-    options = whisper.DecodingOptions()
-    result = whisper.decode(WHISPER_MODEL, mel, options)
-
-    print("result.text", result.text)
-
-    result_text = ""
-    if result and result.text:
-        result_text = result.text
-    return result_text
+# def transcribe(aud_inp):
+#     if aud_inp is None:
+#         return ""
+#     aud = whisper.load_audio(aud_inp)
+#     aud = whisper.pad_or_trim(aud)
+#     mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+#     _, probs = WHISPER_MODEL.detect_language(mel)
+#     options = whisper.DecodingOptions()
+#     result = whisper.decode(WHISPER_MODEL, mel, options)
+#     print("result.text", result.text)
+#     result_text = ""
+#     if result and result.text:
+#         result_text = result.text
+#     return result_text
 
 
 def load_chain():
@@ -143,10 +135,11 @@ with block:
                              lines=1)
         submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
-    with gr.Row():
-        audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-                                   interactive=True, streaming=False)
-        audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
+    # UNCOMMENT TO USE WHISPER
+    # with gr.Row():
+    #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+    #                                interactive=True, streaming=False)
+    #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
 
     gr.Examples(
         examples=["How many people live in Canada?",
