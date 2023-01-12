@@ -18,12 +18,17 @@ from langchain.llms import OpenAI
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
+TOOLS_LIST = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
+
+
 # UNCOMMENT TO USE WHISPER
 # warnings.filterwarnings("ignore")
 # WHISPER_MODEL = whisper.load_model("tiny")
 # print("WHISPER_MODEL", WHISPER_MODEL)
 
 
+# UNCOMMENT TO USE WHISPER
 # def transcribe(aud_inp):
 #     if aud_inp is None:
 #         return ""
@@ -40,36 +45,30 @@ tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 #     return result_text
 
 
-def load_chain():
-    """Logic for loading the chain you want to use should go here."""
-    llm = OpenAI(temperature=0)
-
-    tool_names = ['serpapi', 'pal-math', 'pal-colored-objects']
-    # tool_names = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+def load_chain(tools_list, llm):
+    print("tools_list", tools_list)
+    tool_names = tools_list
+    tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
 
     memory = ConversationBufferMemory(memory_key="chat_history")
-
-    tools = load_tools(tool_names, llm=llm)
-    # tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
-
     chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
     return chain
 
 
-def set_openai_api_key(api_key, agent):
+def set_openai_api_key(api_key):
     """Set the api key and return chain.
-
     If no api_key, then None is returned.
     """
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
-        chain = load_chain()
+        llm = OpenAI(temperature=0)
+        chain = load_chain(TOOLS_DEFAULT_LIST, llm)
         os.environ["OPENAI_API_KEY"] = ""
-        return chain
+        return chain, llm
 
 
 def chat(
-    inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain]
+        inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain]
 ):
     """Execute the chat functionality."""
     print("\n==== date/time: " + str(datetime.datetime.now()) + " ====")
@@ -108,15 +107,27 @@ def do_html_video_speak(words_to_speak):
     return html_video, "videos/tempfile.mp4"
 
 
+def update_selected_tools(widget, state, llm):
+    if widget:
+        state = widget
+        chain = load_chain(state, llm)
+        return state, llm, chain
+
+
 block = gr.Blocks(css=".gradio-container {background-color: lightgray}")
 
 with block:
+    llm_state = gr.State()
+    history_state = gr.State()
+    chain_state = gr.State()
+    tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
+
     with gr.Row():
         with gr.Column():
             gr.Markdown("<h4><center>Conversational Agent using GPT-3.5 & LangChain</center></h4>")
 
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
-               show_label=False, lines=1, type='password')
+                                            show_label=False, lines=1, type='password')
 
     with gr.Row():
         with gr.Column(scale=0.25, min_width=240):
@@ -125,6 +136,13 @@ with block:
             tmp_file_url = "/file=" + tmp_file.value['name']
             htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
             video_html = gr.HTML(htm_video)
+
+            tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
+                                              value=TOOLS_DEFAULT_LIST)
+
+            tools_cb_group.change(update_selected_tools,
+                                  inputs=[tools_cb_group, tools_list_state, llm_state],
+                                  outputs=[tools_list_state, llm_state, chain_state])
 
         with gr.Column(scale=0.75):
             chatbot = gr.Chatbot()
@@ -160,15 +178,11 @@ with block:
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
-    state = gr.State()
-    chain_state = gr.State()
-
-    message.submit(chat, inputs=[message, state, chain_state], outputs=[chatbot, state, video_html, my_file, message])
-    submit.click(chat, inputs=[message, state, chain_state], outputs=[chatbot, state, video_html, my_file, message])
+    message.submit(chat, inputs=[message, history_state, chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
+    submit.click(chat, inputs=[message, history_state, chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
-                                  inputs=[openai_api_key_textbox, chain_state],
-                                  outputs=[chain_state])
+                                  inputs=[openai_api_key_textbox],
+                                  outputs=[chain_state, llm_state])
 
-block.launch(debug = True)
-
+block.launch(debug=True)
