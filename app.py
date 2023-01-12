@@ -18,7 +18,7 @@ from langchain.llms import OpenAI
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
-TOOLS_LIST = ['serpapi', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
 
 
@@ -137,13 +137,6 @@ with block:
             htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
             video_html = gr.HTML(htm_video)
 
-            tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
-                                              value=TOOLS_DEFAULT_LIST)
-
-            tools_cb_group.change(update_selected_tools,
-                                  inputs=[tools_cb_group, tools_list_state, llm_state],
-                                  outputs=[tools_list_state, llm_state, chain_state])
-
         with gr.Column(scale=0.75):
             chatbot = gr.Chatbot()
 
@@ -158,6 +151,14 @@ with block:
     #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
     #                                interactive=True, streaming=False)
     #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
+
+    with gr.Row():
+        tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
+                                          value=TOOLS_DEFAULT_LIST)
+
+        tools_cb_group.change(update_selected_tools,
+                              inputs=[tools_cb_group, tools_list_state, llm_state],
+                              outputs=[tools_list_state, llm_state, chain_state])
 
     gr.Examples(
         examples=["How many people live in Canada?",
