@@ -15,6 +15,11 @@ from langchain.agents import load_tools, initialize_agent
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 
+# Console to variable
+from io import StringIO
+import sys
+import re
+
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
@@ -67,19 +72,55 @@ def set_openai_api_key(api_key):
         return chain, llm
 
 
+def run_chain(chain, inp, capture_hidden_text):
+    output = ""
+    hidden_text = None
+    if capture_hidden_text:
+        tmp = sys.stdout
+        hidden_text_io = StringIO()
+        sys.stdout = hidden_text_io
+
+        output = chain.run(input=inp)
+
+        sys.stdout = tmp
+        hidden_text = hidden_text_io.getvalue()
+
+        # remove escape characters from hidden_text
+        hidden_text = re.sub(r'\x1b[^m]*m', '', hidden_text)
+
+        # remove "Entering new AgentExecutor chain..." from hidden_text
+        hidden_text = re.sub(r"Entering new AgentExecutor chain...\n", "", hidden_text)
+
+        # remove "Finished chain." from hidden_text
+        hidden_text = re.sub(r"Finished chain.", "", hidden_text)
+
+        # Add newline after "Thought:" "Action:" "Observation:" "Input:" and "AI:"
+        hidden_text = re.sub(r"Thought:", "\n\nThought:", hidden_text)
+        hidden_text = re.sub(r"Action:", "\n\nAction:", hidden_text)
+        hidden_text = re.sub(r"Observation:", "\n\nObservation:", hidden_text)
+        hidden_text = re.sub(r"Input:", "\n\nInput:", hidden_text)
+        hidden_text = re.sub(r"AI:", "\n\nAI:", hidden_text)
+    else:
+        output = chain.run(input=inp)
+    return output, hidden_text
+
+
 def chat(
-        inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain]
-):
+        inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
+        trace_chain: bool):
     """Execute the chat functionality."""
     print("\n==== date/time: " + str(datetime.datetime.now()) + " ====")
     print("inp: " + inp)
+    print("trace_chain: ", trace_chain)
     history = history or []
     # If chain is None, that is because no API key was provided.
     output = "Please paste your OpenAI key to use this application."
+
     if chain and chain != "":
-        # Run chain and append input.
-        output = chain.run(input=inp)
-    history.append((inp, output))
+        output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
+
+    history.append((inp, hidden_text if trace_chain else output))
+
     html_video, temp_file = do_html_video_speak(output)
     return history, history, html_video, temp_file, ""
 
@@ -114,6 +155,12 @@ def update_selected_tools(widget, state, llm):
         return state, llm, chain
 
 
+def update_foo(widget, state):
+    if widget:
+        state = widget
+        return state
+
+
 block = gr.Blocks(css=".gradio-container {background-color: lightgray}")
 
 with block:
@@ -121,6 +168,7 @@ with block:
     history_state = gr.State()
     chain_state = gr.State()
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
+    trace_chain_state = gr.State(False)
 
     with gr.Row():
         with gr.Column():
@@ -136,6 +184,10 @@ with block:
             tmp_file_url = "/file=" + tmp_file.value['name']
             htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
             video_html = gr.HTML(htm_video)
+
+            trace_chain_cb = gr.Checkbox(label="Show chain", value=False)
+            trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
+                                  outputs=[trace_chain_state])
 
         with gr.Column(scale=0.75):
             chatbot = gr.Chatbot()
@@ -179,8 +231,8 @@ with block:
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
-    message.submit(chat, inputs=[message, history_state, chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
-    submit.click(chat, inputs=[message, history_state, chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
+    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
+    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
