@@ -20,11 +20,15 @@ from io import StringIO
 import sys
 import re
 
+from openai.error import AuthenticationError, InvalidRequestError
+
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
-TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api', 'open-meteo-api']
+TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api',
+              'open-meteo-api']
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
+BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 
 
 # UNCOMMENT TO USE WHISPER
@@ -76,11 +80,22 @@ def run_chain(chain, inp, capture_hidden_text):
     output = ""
     hidden_text = None
     if capture_hidden_text:
+        error_msg = None
         tmp = sys.stdout
         hidden_text_io = StringIO()
         sys.stdout = hidden_text_io
 
-        output = chain.run(input=inp)
+        try:
+            output = chain.run(input=inp)
+        except AuthenticationError as ae:
+            error_msg = "AuthenticationError: " + str(ae)
+            # print("\nAuthenticationError: ", ae)
+        except InvalidRequestError as ire:
+            error_msg = "\n\n" + BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
+            # print("\nInvalidRequestError: ", ire)
+        except Exception as e:
+            error_msg = "\n" + BUG_FOUND_MSG + " Here are the details: Exception, " + str(e)
+            # print("\nException: ", e)
 
         sys.stdout = tmp
         hidden_text = hidden_text_io.getvalue()
@@ -100,8 +115,24 @@ def run_chain(chain, inp, capture_hidden_text):
         hidden_text = re.sub(r"Observation:", "\n\nObservation:", hidden_text)
         hidden_text = re.sub(r"Input:", "\n\nInput:", hidden_text)
         hidden_text = re.sub(r"AI:", "\n\nAI:", hidden_text)
+
+        if error_msg:
+            hidden_text += error_msg
+
+        print("hidden_text: ", hidden_text)
     else:
-        output = chain.run(input=inp)
+        try:
+            output = chain.run(input=inp)
+        except AuthenticationError as ae:
+            output = "AuthenticationError: " + str(ae)
+            print("\nAuthenticationError: ", ae)
+        except InvalidRequestError as ire:
+            output = BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
+            print("\nInvalidRequestError: ", ire)
+        except Exception as e:
+            output = BUG_FOUND_MSG + " Here are the details: Exception, " + str(e)
+            print("\nException: ", e)
+
     return output, hidden_text
 
 
@@ -115,6 +146,7 @@ def chat(
     history = history or []
     # If chain is None, that is because no API key was provided.
     output = "Please paste your OpenAI key to use this application."
+    hidden_text = output
 
     if chain and chain != "":
         output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
@@ -231,8 +263,10 @@ with block:
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
-    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
-    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state], outputs=[chatbot, history_state, video_html, my_file, message])
+    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state],
+                   outputs=[chatbot, history_state, video_html, my_file, message])
+    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state],
+                 outputs=[chatbot, history_state, video_html, my_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
