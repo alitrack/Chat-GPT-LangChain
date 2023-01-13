@@ -29,6 +29,7 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colo
               'open-meteo-api']
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
+AUTH_ERR_MSG = "AuthenticationError: Incorrect API key provided. You can find your API key at https://beta.openai.com"
 
 
 # UNCOMMENT TO USE WHISPER
@@ -86,7 +87,7 @@ def run_chain(chain, inp, capture_hidden_text):
         try:
             output = chain.run(input=inp)
         except AuthenticationError as ae:
-            error_msg = "AuthenticationError: " + str(ae)
+            error_msg = AUTH_ERR_MSG
         except InvalidRequestError as ire:
             error_msg = "\n\n" + BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
         except Exception as e:
@@ -119,7 +120,7 @@ def run_chain(chain, inp, capture_hidden_text):
         try:
             output = chain.run(input=inp)
         except AuthenticationError as ae:
-            output = "AuthenticationError: " + str(ae)
+            output = AUTH_ERR_MSG
             print("\nAuthenticationError: ", ae)
         except InvalidRequestError as ire:
             output = BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
