@@ -88,6 +88,8 @@ def run_chain(chain, inp, capture_hidden_text):
             output = chain.run(input=inp)
         except AuthenticationError as ae:
             error_msg = AUTH_ERR_MSG
+        except ValueError as ve:
+            error_msg = "\n\nValueError, " + str(ve)
         except InvalidRequestError as ire:
             error_msg = "\n\n" + BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
         except Exception as e:
@@ -122,6 +124,9 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             output = AUTH_ERR_MSG
             print("\nAuthenticationError: ", ae)
+        except ValueError as ve:
+            output = "ValueError, " + str(ve)
+            print("\nValueError: ", ve)
         except InvalidRequestError as ire:
             output = BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
             print("\nInvalidRequestError: ", ire)
