@@ -29,7 +29,7 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colo
               'open-meteo-api']
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
-AUTH_ERR_MSG = "AuthenticationError: Incorrect API key provided. You can find your API key at https://beta.openai.com"
+AUTH_ERR_MSG = "Please paste your OpenAI key."
 
 
 # UNCOMMENT TO USE WHISPER
