@@ -69,10 +69,8 @@ def set_openai_api_key(api_key):
     If no api_key, then None is returned.
     """
     if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
-        llm = OpenAI(temperature=0)
+        llm = OpenAI(temperature=0, openai_api_key=api_key)
         chain = load_chain(TOOLS_DEFAULT_LIST, llm)
-        os.environ["OPENAI_API_KEY"] = ""
         return chain, llm
 
 
