@@ -87,13 +87,10 @@ def run_chain(chain, inp, capture_hidden_text):
             output = chain.run(input=inp)
         except AuthenticationError as ae:
             error_msg = "AuthenticationError: " + str(ae)
-            # print("\nAuthenticationError: ", ae)
         except InvalidRequestError as ire:
             error_msg = "\n\n" + BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
-            # print("\nInvalidRequestError: ", ire)
         except Exception as e:
             error_msg = "\n" + BUG_FOUND_MSG + " Here are the details: Exception, " + str(e)
-            # print("\nException: ", e)
 
         sys.stdout = tmp
         hidden_text = hidden_text_io.getvalue()
