@@ -382,14 +382,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Row():
         with gr.Column():
-            with gr.Accordion("Tools", open=True):
+            with gr.Accordion("Tools", open=False):
                 tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
                                                   value=TOOLS_DEFAULT_LIST)
                 tools_cb_group.change(update_selected_tools,
                                       inputs=[tools_cb_group, tools_list_state, llm_state],
                                       outputs=[tools_list_state, llm_state, chain_state, express_chain_state])
 
-            with gr.Accordion("Formality", open=True):
+            with gr.Accordion("Formality", open=False):
                 formality_radio = gr.Radio(label="Formality:",
                                            choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
                                            value=FORMALITY_DEFAULT)
@@ -397,7 +397,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                        inputs=[formality_radio, formality_state],
                                        outputs=[formality_state])
 
-            with gr.Accordion("Translate to", open=True):
+            with gr.Accordion("Translate to", open=False):
                 translate_to_radio = gr.Radio(label="Translate to:", choices=[
                     TRANSLATE_TO_DEFAULT, "Arabic", "British English", "Chinese (Simplified)", "Chinese (Traditional)",
                     "Czech", "Danish", "Dutch", "English", "Finnish", "French", "German",
@@ -413,15 +413,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                           inputs=[translate_to_radio, translate_to_state],
                                           outputs=[translate_to_state])
 
-            with gr.Accordion("Max words", open=True):
-                num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
-                                             value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
-                num_words_slider.change(update_foo,
-                                        inputs=[num_words_slider, num_words_state],
-                                        outputs=[num_words_state])
-
         with gr.Column():
-            with gr.Accordion("Literary style", open=True):
+            with gr.Accordion("Literary style", open=False):
                 literary_style_radio = gr.Radio(label="Literary style:", choices=[
                     LITERARY_STYLE_DEFAULT, "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
                                                 value=LITERARY_STYLE_DEFAULT)
@@ -430,7 +423,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                             inputs=[literary_style_radio, literary_style_state],
                                             outputs=[literary_style_state])
 
-            with gr.Accordion("Emotions", open=True):
+            with gr.Accordion("Emotions", open=False):
                 anticipation_level_radio = gr.Radio(label="Anticipation level:",
                                                     choices=[EMOTION_DEFAULT, "Interest", "Anticipation", "Vigilance"],
                                                     value=EMOTION_DEFAULT)
@@ -486,6 +479,13 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                 anger_level_radio.change(update_foo,
                                          inputs=[anger_level_radio, anger_level_state],
                                          outputs=[anger_level_state])
+
+            with gr.Accordion("Max words", open=False):
+                num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
+                                             value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
+                num_words_slider.change(update_foo,
+                                        inputs=[num_words_slider, num_words_state],
+                                        outputs=[num_words_state])
 
     gr.Examples(
         examples=["How many people live in Canada?",
