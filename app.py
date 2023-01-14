@@ -30,7 +30,7 @@ tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
 TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api',
               'open-meteo-api']
-TOOLS_DEFAULT_LIST = []
+TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
 
