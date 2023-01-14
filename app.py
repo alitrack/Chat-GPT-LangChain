@@ -9,7 +9,7 @@ import requests
 # import warnings
 # import whisper
 
-from langchain import ConversationChain
+from langchain import ConversationChain, LLMChain
 
 from langchain.agents import load_tools, initialize_agent
 from langchain.chains.conversation.memory import ConversationBufferMemory
@@ -34,7 +34,6 @@ TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
 
-"""
 # Pertains to Express-inator functionality
 NUM_WORDS_DEFAULT = 0
 FORMALITY_DEFAULT = "Casual"
@@ -47,7 +46,6 @@ PROMPT_TEMPLATE = PromptTemplate(
     template="Express {num_words}in a {formality} manner, "
              "{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
-"""
 
 
 # UNCOMMENT TO USE WHISPER
@@ -73,15 +71,11 @@ PROMPT_TEMPLATE = PromptTemplate(
 #     return result_text
 
 
-"""
 # Pertains to Express-inator functionality
-def transform_text(desc, openai_api_key, temperature, llm_chain, num_words, formality,
+def transform_text(desc, express_chain, num_words, formality,
                    anticipation_level, joy_level, trust_level,
                    fear_level, surprise_level, sadness_level, disgust_level, anger_level,
                    translate_to, literary_style):
-    if not openai_api_key or openai_api_key == "":
-        return "<pre>Please paste your OpenAI API key (see https://beta.openai.com)</pre>"
-
     num_words_prompt = ""
     if num_words and int(num_words) != 0:
         num_words_prompt = "using up to " + str(num_words) + " words, "
@@ -96,8 +90,6 @@ def transform_text(desc, openai_api_key, temperature, llm_chain, num_words, form
     sadness_level = sadness_level.lower()
     disgust_level = disgust_level.lower()
     anger_level = anger_level.lower()
-
-    llm_chain.llm.temperature = temperature
 
     # put all emotions into a list
     emotions = []
@@ -151,9 +143,13 @@ def transform_text(desc, openai_api_key, temperature, llm_chain, num_words, form
         literary_style=literary_style_str
     )
 
-    generated_text = llm_chain.run({'original_words': desc, 'num_words': num_words_prompt, 'formality': formality,
-                                    'emotions': emotions_str, 'translate_to': translate_to_str,
-                                    'literary_style': literary_style_str}).strip()
+    if express_chain:
+        generated_text = express_chain.run(
+            {'original_words': desc, 'num_words': num_words_prompt, 'formality': formality,
+             'emotions': emotions_str, 'translate_to': translate_to_str,
+             'literary_style': literary_style_str}).strip()
+    else:
+        generated_text = desc
 
     # replace all newlines with <br> in generated_text
     generated_text = generated_text.replace("\n", "<br>")
@@ -161,11 +157,9 @@ def transform_text(desc, openai_api_key, temperature, llm_chain, num_words, form
     prompt_plus_generated = "<b>GPT prompt:</b> " + formatted_prompt + "<br/><br/><code>" + generated_text + "</code>"
 
     print("\n==== date/time: " + str(datetime.datetime.now() - datetime.timedelta(hours=5)) + " ====")
-    print("temperature: ", temperature)
     print("prompt_plus_generated: " + prompt_plus_generated)
 
-    return prompt_plus_generated
-"""
+    return generated_text
 
 
 def load_chain(tools_list, llm):
@@ -175,7 +169,9 @@ def load_chain(tools_list, llm):
 
     memory = ConversationBufferMemory(memory_key="chat_history")
     chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
-    return chain
+
+    express_chain = LLMChain(llm=llm, prompt=PROMPT_TEMPLATE, verbose=True)
+    return chain, express_chain
 
 
 def set_openai_api_key(api_key):
@@ -184,8 +180,8 @@ def set_openai_api_key(api_key):
     """
     if api_key:
         llm = OpenAI(temperature=0, openai_api_key=api_key)
-        chain = load_chain(TOOLS_DEFAULT_LIST, llm)
-        return chain, llm
+        chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
+        return chain, express_chain, llm
 
 
 def run_chain(chain, inp, capture_hidden_text):
@@ -252,7 +248,10 @@ def run_chain(chain, inp, capture_hidden_text):
 
 def chat(
         inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
-        trace_chain: bool):
+        trace_chain: bool, express_chain: Optional[LLMChain], num_words, formality, anticipation_level, joy_level,
+        trust_level,
+        fear_level, surprise_level, sadness_level, disgust_level, anger_level,
+        translate_to, literary_style):
     """Execute the chat functionality."""
     print("\n==== date/time: " + str(datetime.datetime.now()) + " ====")
     print("inp: " + inp)
@@ -265,7 +264,14 @@ def chat(
     if chain and chain != "":
         output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
 
-    history.append((inp, hidden_text if trace_chain else output))
+    output = transform_text(output, express_chain, num_words, formality, anticipation_level, joy_level, trust_level,
+                            fear_level, surprise_level, sadness_level, disgust_level, anger_level,
+                            translate_to, literary_style)
+
+    text_to_display = output
+    if trace_chain:
+        text_to_display = hidden_text + "\n\n" + output
+    history.append((inp, text_to_display))
 
     html_video, temp_file = do_html_video_speak(output)
     return history, history, html_video, temp_file, ""
@@ -297,8 +303,8 @@ def do_html_video_speak(words_to_speak):
 def update_selected_tools(widget, state, llm):
     if widget:
         state = widget
-        chain = load_chain(state, llm)
-        return state, llm, chain
+        chain, express_chain = load_chain(state, llm)
+        return state, llm, chain, express_chain
 
 
 def update_foo(widget, state):
@@ -311,10 +317,10 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
+    express_chain_state = gr.State()
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
     trace_chain_state = gr.State(False)
 
-    """
     # Pertains to Express-inator functionality
     num_words_state = gr.State(NUM_WORDS_DEFAULT)
     formality_state = gr.State(FORMALITY_DEFAULT)
@@ -328,7 +334,6 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     anger_level_state = gr.State(EMOTION_DEFAULT)
     translate_to_state = gr.State(TRANSLATE_TO_DEFAULT)
     literary_style_state = gr.State(LITERARY_STYLE_DEFAULT)
-    """
 
     with gr.Row():
         with gr.Column():
@@ -338,7 +343,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                             show_label=False, lines=1, type='password')
 
     with gr.Row():
-        with gr.Column(scale=0.20, min_width=240):
+        with gr.Column(scale=0.25, min_width=240):
             my_file = gr.File(label="Upload a file", type="file", visible=False)
             tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
             tmp_file_url = "/file=" + tmp_file.value['name']
@@ -349,16 +354,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                                   outputs=[trace_chain_state])
 
-        with gr.Column(scale=0.70, min_width=600):
+        with gr.Column(scale=0.75):
             chatbot = gr.Chatbot()
-
-        with gr.Column(scale=0.10):
-            tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
-                                              value=TOOLS_DEFAULT_LIST)
-
-            tools_cb_group.change(update_selected_tools,
-                                  inputs=[tools_cb_group, tools_list_state, llm_state],
-                                  outputs=[tools_list_state, llm_state, chain_state])
 
     with gr.Row():
         message = gr.Textbox(label="What's on your mind??",
@@ -372,23 +369,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     #                                interactive=True, streaming=False)
     #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
 
-    # with gr.Row():
-    #     tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
-    #                                       value=TOOLS_DEFAULT_LIST)
-    #
-    #     tools_cb_group.change(update_selected_tools,
-    #                           inputs=[tools_cb_group, tools_list_state, llm_state],
-    #                           outputs=[tools_list_state, llm_state, chain_state])
-
-    """
     with gr.Row():
         with gr.Column():
-            with gr.Accordion("Max words", open=False):
-                num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
-                                             value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
-                num_words_slider.change(update_foo,
-                                        inputs=[num_words_slider, num_words_state],
-                                        outputs=[num_words_state])
+            with gr.Accordion("Tools", open=False):
+                tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
+                                                  value=TOOLS_DEFAULT_LIST)
+                tools_cb_group.change(update_selected_tools,
+                                      inputs=[tools_cb_group, tools_list_state, llm_state],
+                                      outputs=[tools_list_state, llm_state, chain_state, express_chain_state])
 
             with gr.Accordion("Formality", open=False):
                 formality_radio = gr.Radio(label="Formality:", choices=["Casual", "Polite", "Honorific"],
@@ -400,16 +388,19 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             with gr.Accordion("Translate to", open=False):
                 translate_to_radio = gr.Radio(label="Translate to:", choices=[
                     TRANSLATE_TO_DEFAULT, "Arabic", "British English", "Chinese (Simplified)", "Chinese (Traditional)",
-                    "Czech", "Danish", "Dutch", "emojis", "English", "Finnish", "French", "Gen Z slang", "German", "Greek",
+                    "Czech", "Danish", "Dutch", "emojis", "English", "Finnish", "French", "Gen Z slang", "German",
+                    "Greek",
                     "Hebrew", "Hindi", "Hungarian", "Indonesian", "Italian", "Japanese",
                     "how the stereotypical Karen would say it",
                     "Klingon", "Korean", "Norwegian", "Old English", "Pirate", "Polish", "Portuguese", "Romanian",
-                    "Russian", "Spanish", "Strange Planet expospeak technical talk", "Swedish", "Thai", "Turkish", "Vietnamese", "Yoda"], value=TRANSLATE_TO_DEFAULT)
+                    "Russian", "Spanish", "Strange Planet expospeak technical talk", "Swedish", "Thai", "Turkish",
+                    "Vietnamese", "Yoda"], value=TRANSLATE_TO_DEFAULT)
 
                 translate_to_radio.change(update_foo,
                                           inputs=[translate_to_radio, translate_to_state],
                                           outputs=[translate_to_state])
 
+        with gr.Column():
             with gr.Accordion("Literary style", open=False):
                 literary_style_radio = gr.Radio(label="Literary style:", choices=[
                     LITERARY_STYLE_DEFAULT, "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
@@ -419,7 +410,6 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                             inputs=[literary_style_radio, literary_style_state],
                                             outputs=[literary_style_state])
 
-        with gr.Column():
             with gr.Accordion("Emotions", open=False):
                 anticipation_level_radio = gr.Radio(label="Anticipation level:",
                                                     choices=[EMOTION_DEFAULT, "Interest", "Anticipation", "Vigilance"],
@@ -476,7 +466,13 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                 anger_level_radio.change(update_foo,
                                          inputs=[anger_level_radio, anger_level_state],
                                          outputs=[anger_level_state])
-    """
+
+            with gr.Accordion("Max words", open=False):
+                num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
+                                             value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
+                num_words_slider.change(update_foo,
+                                        inputs=[num_words_slider, num_words_state],
+                                        outputs=[num_words_state])
 
     gr.Examples(
         examples=["How many people live in Canada?",
@@ -497,13 +493,22 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
-    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state],
+    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state,
+                                 express_chain_state, num_words_state, formality_state,
+                                 anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
+                                 surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
+                                 translate_to_state, literary_style_state],
                    outputs=[chatbot, history_state, video_html, my_file, message])
-    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state],
+
+    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state,
+                               express_chain_state, num_words_state, formality_state,
+                               anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
+                               surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
+                               translate_to_state, literary_style_state],
                  outputs=[chatbot, history_state, video_html, my_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
-                                  outputs=[chain_state, llm_state])
+                                  outputs=[chain_state, express_chain_state, llm_state])
 
 block.launch(debug=True)
