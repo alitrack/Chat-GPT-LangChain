@@ -27,7 +27,7 @@ tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
 TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api',
               'open-meteo-api']
-TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math', 'pal-colored-objects']
+TOOLS_DEFAULT_LIST = []
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
 
@@ -194,9 +194,7 @@ def update_foo(widget, state):
         return state
 
 
-block = gr.Blocks(css=".gradio-container {background-color: lightgray}")
-
-with block:
+with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
