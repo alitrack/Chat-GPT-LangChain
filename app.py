@@ -36,15 +36,14 @@ AUTH_ERR_MSG = "Please paste your OpenAI key."
 
 # Pertains to Express-inator functionality
 NUM_WORDS_DEFAULT = 0
-FORMALITY_DEFAULT = "Casual"
+FORMALITY_DEFAULT = "N/A"
 TEMPERATURE_DEFAULT = 0.5
 EMOTION_DEFAULT = "N/A"
-TRANSLATE_TO_DEFAULT = "Don't translate"
-LITERARY_STYLE_DEFAULT = "Prose"
+TRANSLATE_TO_DEFAULT = "N/A"
+LITERARY_STYLE_DEFAULT = "N/A"
 PROMPT_TEMPLATE = PromptTemplate(
     input_variables=["original_words", "num_words", "formality", "emotions", "translate_to", "literary_style"],
-    template="Express {num_words}in a {formality} manner, "
-             "{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
+    template="Express {num_words}{formality}{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
 
 
@@ -91,6 +90,10 @@ def transform_text(desc, express_chain, num_words, formality,
     disgust_level = disgust_level.lower()
     anger_level = anger_level.lower()
 
+    formality_str = ""
+    if formality != "n/a":
+        formality_str = "in a " + formality + " manner, "
+
     # put all emotions into a list
     emotions = []
     if anticipation_level != "n/a":
@@ -123,7 +126,9 @@ def transform_text(desc, express_chain, num_words, formality,
 
     literary_style_str = ""
     if literary_style != LITERARY_STYLE_DEFAULT:
-        if literary_style == "Poetry":
+        if literary_style == "Prose":
+            literary_style_str = "as prose, "
+        elif literary_style == "Poetry":
             literary_style_str = "as a poem, "
         elif literary_style == "Haiku":
             literary_style_str = "as a haiku, "
@@ -137,18 +142,20 @@ def transform_text(desc, express_chain, num_words, formality,
     formatted_prompt = PROMPT_TEMPLATE.format(
         original_words=desc,
         num_words=num_words_prompt,
-        formality=formality,
+        formality=formality_str,
         emotions=emotions_str,
         translate_to=translate_to_str,
         literary_style=literary_style_str
     )
 
-    if express_chain:
+    trans_instr = num_words_prompt + formality_str + emotions_str + translate_to_str + literary_style_str
+    if express_chain and len(trans_instr.strip()) > 0:
         generated_text = express_chain.run(
-            {'original_words': desc, 'num_words': num_words_prompt, 'formality': formality,
+            {'original_words': desc, 'num_words': num_words_prompt, 'formality': formality_str,
              'emotions': emotions_str, 'translate_to': translate_to_str,
              'literary_style': literary_style_str}).strip()
     else:
+        print("Not transforming text")
         generated_text = desc
 
     # replace all newlines with <br> in generated_text
@@ -163,14 +170,18 @@ def transform_text(desc, express_chain, num_words, formality,
 
 
 def load_chain(tools_list, llm):
-    print("tools_list", tools_list)
-    tool_names = tools_list
-    tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
+    chain = None
+    express_chain = None
+    if llm:
+        print("tools_list", tools_list)
+        tool_names = tools_list
+        tools = load_tools(tool_names, llm=llm, news_api_key=news_api_key, tmdb_bearer_token=tmdb_bearer_token)
 
-    memory = ConversationBufferMemory(memory_key="chat_history")
-    chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
+        memory = ConversationBufferMemory(memory_key="chat_history")
 
-    express_chain = LLMChain(llm=llm, prompt=PROMPT_TEMPLATE, verbose=True)
+        chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
+        express_chain = LLMChain(llm=llm, prompt=PROMPT_TEMPLATE, verbose=True)
+
     return chain, express_chain
 
 
@@ -379,7 +390,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                       outputs=[tools_list_state, llm_state, chain_state, express_chain_state])
 
             with gr.Accordion("Formality", open=False):
-                formality_radio = gr.Radio(label="Formality:", choices=["Casual", "Polite", "Honorific"],
+                formality_radio = gr.Radio(label="Formality:",
+                                           choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
                                            value=FORMALITY_DEFAULT)
                 formality_radio.change(update_foo,
                                        inputs=[formality_radio, formality_state],
@@ -388,13 +400,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             with gr.Accordion("Translate to", open=False):
                 translate_to_radio = gr.Radio(label="Translate to:", choices=[
                     TRANSLATE_TO_DEFAULT, "Arabic", "British English", "Chinese (Simplified)", "Chinese (Traditional)",
-                    "Czech", "Danish", "Dutch", "emojis", "English", "Finnish", "French", "Gen Z slang", "German",
-                    "Greek",
-                    "Hebrew", "Hindi", "Hungarian", "Indonesian", "Italian", "Japanese",
-                    "how the stereotypical Karen would say it",
-                    "Klingon", "Korean", "Norwegian", "Old English", "Pirate", "Polish", "Portuguese", "Romanian",
-                    "Russian", "Spanish", "Strange Planet expospeak technical talk", "Swedish", "Thai", "Turkish",
-                    "Vietnamese", "Yoda"], value=TRANSLATE_TO_DEFAULT)
+                    "Czech", "Danish", "Dutch", "English", "Finnish", "French", "German",
+                    "Greek", "Hebrew", "Hindi", "Hungarian", "Indonesian", "Italian", "Japanese",
+                    "Korean", "Norwegian", "Old English", "Polish", "Portuguese", "Romanian",
+                    "Russian", "Spanish", "Swedish", "Thai", "Turkish",
+                    "Vietnamese",
+                    "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
+                    "Pirate", "Strange Planet expospeak technical talk", "Yoda"],
+                                              value=TRANSLATE_TO_DEFAULT)
 
                 translate_to_radio.change(update_foo,
                                           inputs=[translate_to_radio, translate_to_state],
