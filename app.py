@@ -22,6 +22,9 @@ import re
 
 from openai.error import AuthenticationError, InvalidRequestError
 
+# Pertains to Express-inator functionality
+from langchain.prompts import PromptTemplate
+
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
@@ -30,6 +33,21 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colo
 TOOLS_DEFAULT_LIST = []
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
+
+"""
+# Pertains to Express-inator functionality
+NUM_WORDS_DEFAULT = 0
+FORMALITY_DEFAULT = "Casual"
+TEMPERATURE_DEFAULT = 0.5
+EMOTION_DEFAULT = "N/A"
+TRANSLATE_TO_DEFAULT = "Don't translate"
+LITERARY_STYLE_DEFAULT = "Prose"
+PROMPT_TEMPLATE = PromptTemplate(
+    input_variables=["original_words", "num_words", "formality", "emotions", "translate_to", "literary_style"],
+    template="Express {num_words}in a {formality} manner, "
+             "{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
+)
+"""
 
 
 # UNCOMMENT TO USE WHISPER
@@ -53,6 +71,101 @@ AUTH_ERR_MSG = "Please paste your OpenAI key."
 #     if result and result.text:
 #         result_text = result.text
 #     return result_text
+
+
+"""
+# Pertains to Express-inator functionality
+def transform_text(desc, openai_api_key, temperature, llm_chain, num_words, formality,
+                   anticipation_level, joy_level, trust_level,
+                   fear_level, surprise_level, sadness_level, disgust_level, anger_level,
+                   translate_to, literary_style):
+    if not openai_api_key or openai_api_key == "":
+        return "<pre>Please paste your OpenAI API key (see https://beta.openai.com)</pre>"
+
+    num_words_prompt = ""
+    if num_words and int(num_words) != 0:
+        num_words_prompt = "using up to " + str(num_words) + " words, "
+
+    # Change some arguments to lower case
+    formality = formality.lower()
+    anticipation_level = anticipation_level.lower()
+    joy_level = joy_level.lower()
+    trust_level = trust_level.lower()
+    fear_level = fear_level.lower()
+    surprise_level = surprise_level.lower()
+    sadness_level = sadness_level.lower()
+    disgust_level = disgust_level.lower()
+    anger_level = anger_level.lower()
+
+    llm_chain.llm.temperature = temperature
+
+    # put all emotions into a list
+    emotions = []
+    if anticipation_level != "n/a":
+        emotions.append(anticipation_level)
+    if joy_level != "n/a":
+        emotions.append(joy_level)
+    if trust_level != "n/a":
+        emotions.append(trust_level)
+    if fear_level != "n/a":
+        emotions.append(fear_level)
+    if surprise_level != "n/a":
+        emotions.append(surprise_level)
+    if sadness_level != "n/a":
+        emotions.append(sadness_level)
+    if disgust_level != "n/a":
+        emotions.append(disgust_level)
+    if anger_level != "n/a":
+        emotions.append(anger_level)
+
+    emotions_str = ""
+    if len(emotions) > 0:
+        if len(emotions) == 1:
+            emotions_str = "with emotion of " + emotions[0] + ", "
+        else:
+            emotions_str = "with emotions of " + ", ".join(emotions[:-1]) + " and " + emotions[-1] + ", "
+
+    translate_to_str = ""
+    if translate_to != TRANSLATE_TO_DEFAULT:
+        translate_to_str = "translated to " + translate_to + ", "
+
+    literary_style_str = ""
+    if literary_style != LITERARY_STYLE_DEFAULT:
+        if literary_style == "Poetry":
+            literary_style_str = "as a poem, "
+        elif literary_style == "Haiku":
+            literary_style_str = "as a haiku, "
+        elif literary_style == "Limerick":
+            literary_style_str = "as a limerick, "
+        elif literary_style == "Joke":
+            literary_style_str = "as a very funny joke with a setup and punchline, "
+        elif literary_style == "Knock-knock":
+            literary_style_str = "as a very funny knock-knock joke, "
+
+    formatted_prompt = PROMPT_TEMPLATE.format(
+        original_words=desc,
+        num_words=num_words_prompt,
+        formality=formality,
+        emotions=emotions_str,
+        translate_to=translate_to_str,
+        literary_style=literary_style_str
+    )
+
+    generated_text = llm_chain.run({'original_words': desc, 'num_words': num_words_prompt, 'formality': formality,
+                                    'emotions': emotions_str, 'translate_to': translate_to_str,
+                                    'literary_style': literary_style_str}).strip()
+
+    # replace all newlines with <br> in generated_text
+    generated_text = generated_text.replace("\n", "<br>")
+
+    prompt_plus_generated = "<b>GPT prompt:</b> " + formatted_prompt + "<br/><br/><code>" + generated_text + "</code>"
+
+    print("\n==== date/time: " + str(datetime.datetime.now() - datetime.timedelta(hours=5)) + " ====")
+    print("temperature: ", temperature)
+    print("prompt_plus_generated: " + prompt_plus_generated)
+
+    return prompt_plus_generated
+"""
 
 
 def load_chain(tools_list, llm):
@@ -201,6 +314,22 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
     trace_chain_state = gr.State(False)
 
+    """
+    # Pertains to Express-inator functionality
+    num_words_state = gr.State(NUM_WORDS_DEFAULT)
+    formality_state = gr.State(FORMALITY_DEFAULT)
+    anticipation_level_state = gr.State(EMOTION_DEFAULT)
+    joy_level_state = gr.State(EMOTION_DEFAULT)
+    trust_level_state = gr.State(EMOTION_DEFAULT)
+    fear_level_state = gr.State(EMOTION_DEFAULT)
+    surprise_level_state = gr.State(EMOTION_DEFAULT)
+    sadness_level_state = gr.State(EMOTION_DEFAULT)
+    disgust_level_state = gr.State(EMOTION_DEFAULT)
+    anger_level_state = gr.State(EMOTION_DEFAULT)
+    translate_to_state = gr.State(TRANSLATE_TO_DEFAULT)
+    literary_style_state = gr.State(LITERARY_STYLE_DEFAULT)
+    """
+
     with gr.Row():
         with gr.Column():
             gr.Markdown("<h4><center>Conversational Agent using GPT-3.5 & LangChain</center></h4>")
@@ -209,7 +338,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                             show_label=False, lines=1, type='password')
 
     with gr.Row():
-        with gr.Column(scale=0.25, min_width=240):
+        with gr.Column(scale=0.20, min_width=240):
             my_file = gr.File(label="Upload a file", type="file", visible=False)
             tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
             tmp_file_url = "/file=" + tmp_file.value['name']
@@ -220,8 +349,16 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                                   outputs=[trace_chain_state])
 
-        with gr.Column(scale=0.75):
+        with gr.Column(scale=0.70, min_width=600):
             chatbot = gr.Chatbot()
+
+        with gr.Column(scale=0.10):
+            tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
+                                              value=TOOLS_DEFAULT_LIST)
+
+            tools_cb_group.change(update_selected_tools,
+                                  inputs=[tools_cb_group, tools_list_state, llm_state],
+                                  outputs=[tools_list_state, llm_state, chain_state])
 
     with gr.Row():
         message = gr.Textbox(label="What's on your mind??",
@@ -235,13 +372,111 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     #                                interactive=True, streaming=False)
     #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
 
-    with gr.Row():
-        tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
-                                          value=TOOLS_DEFAULT_LIST)
+    # with gr.Row():
+    #     tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
+    #                                       value=TOOLS_DEFAULT_LIST)
+    #
+    #     tools_cb_group.change(update_selected_tools,
+    #                           inputs=[tools_cb_group, tools_list_state, llm_state],
+    #                           outputs=[tools_list_state, llm_state, chain_state])
 
-        tools_cb_group.change(update_selected_tools,
-                              inputs=[tools_cb_group, tools_list_state, llm_state],
-                              outputs=[tools_list_state, llm_state, chain_state])
+    """
+    with gr.Row():
+        with gr.Column():
+            with gr.Accordion("Max words", open=False):
+                num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
+                                             value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
+                num_words_slider.change(update_foo,
+                                        inputs=[num_words_slider, num_words_state],
+                                        outputs=[num_words_state])
+
+            with gr.Accordion("Formality", open=False):
+                formality_radio = gr.Radio(label="Formality:", choices=["Casual", "Polite", "Honorific"],
+                                           value=FORMALITY_DEFAULT)
+                formality_radio.change(update_foo,
+                                       inputs=[formality_radio, formality_state],
+                                       outputs=[formality_state])
+
+            with gr.Accordion("Translate to", open=False):
+                translate_to_radio = gr.Radio(label="Translate to:", choices=[
+                    TRANSLATE_TO_DEFAULT, "Arabic", "British English", "Chinese (Simplified)", "Chinese (Traditional)",
+                    "Czech", "Danish", "Dutch", "emojis", "English", "Finnish", "French", "Gen Z slang", "German", "Greek",
+                    "Hebrew", "Hindi", "Hungarian", "Indonesian", "Italian", "Japanese",
+                    "how the stereotypical Karen would say it",
+                    "Klingon", "Korean", "Norwegian", "Old English", "Pirate", "Polish", "Portuguese", "Romanian",
+                    "Russian", "Spanish", "Strange Planet expospeak technical talk", "Swedish", "Thai", "Turkish", "Vietnamese", "Yoda"], value=TRANSLATE_TO_DEFAULT)
+
+                translate_to_radio.change(update_foo,
+                                          inputs=[translate_to_radio, translate_to_state],
+                                          outputs=[translate_to_state])
+
+            with gr.Accordion("Literary style", open=False):
+                literary_style_radio = gr.Radio(label="Literary style:", choices=[
+                    LITERARY_STYLE_DEFAULT, "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
+                                                value=LITERARY_STYLE_DEFAULT)
+
+                literary_style_radio.change(update_foo,
+                                            inputs=[literary_style_radio, literary_style_state],
+                                            outputs=[literary_style_state])
+
+        with gr.Column():
+            with gr.Accordion("Emotions", open=False):
+                anticipation_level_radio = gr.Radio(label="Anticipation level:",
+                                                    choices=[EMOTION_DEFAULT, "Interest", "Anticipation", "Vigilance"],
+                                                    value=EMOTION_DEFAULT)
+                anticipation_level_radio.change(update_foo,
+                                                inputs=[anticipation_level_radio, anticipation_level_state],
+                                                outputs=[anticipation_level_state])
+
+                joy_level_radio = gr.Radio(label="Joy level:",
+                                           choices=[EMOTION_DEFAULT, "Serenity", "Joy", "Ecstasy"],
+                                           value=EMOTION_DEFAULT)
+                joy_level_radio.change(update_foo,
+                                       inputs=[joy_level_radio, joy_level_state],
+                                       outputs=[joy_level_state])
+
+                trust_level_radio = gr.Radio(label="Trust level:",
+                                             choices=[EMOTION_DEFAULT, "Acceptance", "Trust", "Admiration"],
+                                             value=EMOTION_DEFAULT)
+                trust_level_radio.change(update_foo,
+                                         inputs=[trust_level_radio, trust_level_state],
+                                         outputs=[trust_level_state])
+
+                fear_level_radio = gr.Radio(label="Fear level:",
+                                            choices=[EMOTION_DEFAULT, "Apprehension", "Fear", "Terror"],
+                                            value=EMOTION_DEFAULT)
+                fear_level_radio.change(update_foo,
+                                        inputs=[fear_level_radio, fear_level_state],
+                                        outputs=[fear_level_state])
+
+                surprise_level_radio = gr.Radio(label="Surprise level:",
+                                                choices=[EMOTION_DEFAULT, "Distraction", "Surprise", "Amazement"],
+                                                value=EMOTION_DEFAULT)
+                surprise_level_radio.change(update_foo,
+                                            inputs=[surprise_level_radio, surprise_level_state],
+                                            outputs=[surprise_level_state])
+
+                sadness_level_radio = gr.Radio(label="Sadness level:",
+                                               choices=[EMOTION_DEFAULT, "Pensiveness", "Sadness", "Grief"],
+                                               value=EMOTION_DEFAULT)
+                sadness_level_radio.change(update_foo,
+                                           inputs=[sadness_level_radio, sadness_level_state],
+                                           outputs=[sadness_level_state])
+
+                disgust_level_radio = gr.Radio(label="Disgust level:",
+                                               choices=[EMOTION_DEFAULT, "Boredom", "Disgust", "Loathing"],
+                                               value=EMOTION_DEFAULT)
+                disgust_level_radio.change(update_foo,
+                                           inputs=[disgust_level_radio, disgust_level_state],
+                                           outputs=[disgust_level_state])
+
+                anger_level_radio = gr.Radio(label="Anger level:",
+                                             choices=[EMOTION_DEFAULT, "Annoyance", "Anger", "Rage"],
+                                             value=EMOTION_DEFAULT)
+                anger_level_radio.change(update_foo,
+                                         inputs=[anger_level_radio, anger_level_state],
+                                         outputs=[anger_level_state])
+    """
 
     gr.Examples(
         examples=["How many people live in Canada?",
