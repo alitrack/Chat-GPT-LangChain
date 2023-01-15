@@ -43,7 +43,7 @@ TRANSLATE_TO_DEFAULT = "N/A"
 LITERARY_STYLE_DEFAULT = "N/A"
 PROMPT_TEMPLATE = PromptTemplate(
     input_variables=["original_words", "num_words", "formality", "emotions", "translate_to", "literary_style"],
-    template="Express {num_words}{formality}{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
+    template="Restate {num_words}{formality}{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
 
 
@@ -324,7 +324,7 @@ def update_foo(widget, state):
         return state
 
 
-with gr.Blocks(css=".gradio-container {background-color: lightgray} ") as block:
+with gr.Blocks(css=".gradio-container {background-color: lightgray max-height: 1000} ") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
