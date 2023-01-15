@@ -324,7 +324,7 @@ def update_foo(widget, state):
         return state
 
 
-with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
+with gr.Blocks(css=".gradio-container {background-color: lightgray} ") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
