@@ -362,10 +362,6 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                 htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
                 video_html = gr.HTML(htm_video)
 
-                trace_chain_cb = gr.Checkbox(label="Show chain", value=False)
-                trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
-                                      outputs=[trace_chain_state])
-
             with gr.Column(scale=3):
                 chatbot = gr.Chatbot()
 
@@ -398,6 +394,10 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         tools_cb_group.change(update_selected_tools,
                               inputs=[tools_cb_group, tools_list_state, llm_state],
                               outputs=[tools_list_state, llm_state, chain_state, express_chain_state])
+
+        trace_chain_cb = gr.Checkbox(label="Show reasoning chain in chat bubble", value=False)
+        trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
+                              outputs=[trace_chain_state])
 
     with gr.Tab("Formality"):
         formality_radio = gr.Radio(label="Formality:",
