@@ -367,6 +367,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
         with gr.Column(scale=0.75):
             chatbot = gr.Chatbot()
+            # create a chatbot that uses CSS to have a fixed height of 400px
+            chatbot.css = """
+            .gradio-chatbot {
+                height: 400px;
+            }
+            """
+
+
 
     with gr.Row():
         message = gr.Textbox(label="What's on your mind??",
