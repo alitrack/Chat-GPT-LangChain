@@ -354,18 +354,19 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray} ") as block:
                                             show_label=False, lines=1, type='password')
 
     with gr.Row():
-        with gr.Column(scale=1, min_width=240):
-            my_file = gr.File(label="Upload a file", type="file", visible=False)
-            tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
-            tmp_file_url = "/file=" + tmp_file.value['name']
-            htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
-            video_html = gr.HTML(htm_video)
+        # with gr.Column(scale=1, min_width=240):
+        my_file = gr.File(label="Upload a file", type="file", visible=False)
+        tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
+        tmp_file_url = "/file=" + tmp_file.value['name']
+        htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
+        video_html = gr.HTML(htm_video)
 
-            trace_chain_cb = gr.Checkbox(label="Show chain", value=False)
-            trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
-                                  outputs=[trace_chain_state])
+        trace_chain_cb = gr.Checkbox(label="Show chain", value=False)
+        trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
+                              outputs=[trace_chain_state])
 
         # with gr.Column(scale=3):
+    with gr.Row():
         chatbot = gr.Chatbot()
 
     with gr.Row():
