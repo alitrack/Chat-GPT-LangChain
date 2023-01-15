@@ -425,7 +425,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Lit style"):
         literary_style_radio = gr.Radio(label="Literary style:", choices=[
-            LITERARY_STYLE_DEFAULT, "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
+            LITERARY_STYLE_DEFAULT, "Prose", "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
                                         value=LITERARY_STYLE_DEFAULT)
 
         literary_style_radio.change(update_foo,
