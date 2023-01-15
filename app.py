@@ -324,7 +324,8 @@ def update_foo(widget, state):
         return state
 
 
-with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
+# with gr.Blocks(css=".gradio-container {background-color: lightgray; #chatbot {max-height: 200}}") as block:
+with gr.Blocks(css="#chatbot-row {max-height: 400px}") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
@@ -353,8 +354,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                             show_label=False, lines=1, type='password')
 
-    with gr.Row():
-        with gr.Column(scale=0.25, min_width=240):
+    with gr.Row(elem_id="chatbot-row"):
+        with gr.Column(scale=1, min_width=240):
             my_file = gr.File(label="Upload a file", type="file", visible=False)
             tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
             tmp_file_url = "/file=" + tmp_file.value['name']
@@ -365,16 +366,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                                   outputs=[trace_chain_state])
 
-        with gr.Column(scale=0.75):
+        with gr.Column(scale=3):
             chatbot = gr.Chatbot()
-            # create a chatbot that uses CSS to have a fixed height of 400px
-            chatbot.css = """
-            .gradio-chatbot {
-                height: 400px;
-            }
-            """
-
-
 
     with gr.Row():
         message = gr.Textbox(label="What's on your mind??",
