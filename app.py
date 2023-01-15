@@ -324,8 +324,7 @@ def update_foo(widget, state):
         return state
 
 
-# with gr.Blocks(css=".gradio-container {background-color: lightgray; #chatbot {max-height: 200}}") as block:
-with gr.Blocks(css="#chatbot-row {max-height: 400px}") as block:
+with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     llm_state = gr.State()
     history_state = gr.State()
     chain_state = gr.State()
@@ -354,7 +353,7 @@ with gr.Blocks(css="#chatbot-row {max-height: 400px}") as block:
         openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                             show_label=False, lines=1, type='password')
 
-    with gr.Row(elem_id="chatbot-row"):
+    with gr.Row():
         with gr.Column(scale=1, min_width=240):
             my_file = gr.File(label="Upload a file", type="file", visible=False)
             tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
@@ -366,8 +365,8 @@ with gr.Blocks(css="#chatbot-row {max-height: 400px}") as block:
             trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                                   outputs=[trace_chain_state])
 
-        with gr.Column(scale=3):
-            chatbot = gr.Chatbot()
+        # with gr.Column(scale=3):
+        chatbot = gr.Chatbot()
 
     with gr.Row():
         message = gr.Textbox(label="What's on your mind??",
