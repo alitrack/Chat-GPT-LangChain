@@ -1,7 +1,10 @@
 import io
 import os
+from contextlib import closing
 from typing import Optional, Tuple
 import datetime
+
+import boto3
 import gradio as gr
 import requests
 
@@ -25,6 +28,8 @@ from openai.error import AuthenticationError, InvalidRequestError
 # Pertains to Express-inator functionality
 from langchain.prompts import PromptTemplate
 
+from polly_utils import PollyVoiceData, NEURAL_ENGINE
+
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
@@ -33,9 +38,11 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colo
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
+MAX_TOKENS = 512
 
 # Pertains to Express-inator functionality
 NUM_WORDS_DEFAULT = 0
+MAX_WORDS = 400
 FORMALITY_DEFAULT = "N/A"
 TEMPERATURE_DEFAULT = 0.5
 EMOTION_DEFAULT = "N/A"
@@ -45,6 +52,8 @@ PROMPT_TEMPLATE = PromptTemplate(
     input_variables=["original_words", "num_words", "formality", "emotions", "translate_to", "literary_style"],
     template="Restate {num_words}{formality}{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
+
+POLLY_VOICE_DATA = PollyVoiceData()
 
 
 # UNCOMMENT TO USE WHISPER
@@ -128,6 +137,12 @@ def transform_text(desc, express_chain, num_words, formality,
     if literary_style != LITERARY_STYLE_DEFAULT:
         if literary_style == "Prose":
             literary_style_str = "as prose, "
+        elif literary_style == "Summary":
+            literary_style_str = "as a summary, "
+        elif literary_style == "Outline":
+            literary_style_str = "as an outline numbers and lower case letters"
+        elif literary_style == "Bullets":
+            literary_style_str = "as bullet points using bullets"
         elif literary_style == "Poetry":
             literary_style_str = "as a poem, "
         elif literary_style == "Haiku":
@@ -159,9 +174,9 @@ def transform_text(desc, express_chain, num_words, formality,
         generated_text = desc
 
     # replace all newlines with <br> in generated_text
-    generated_text = generated_text.replace("\n", "<br>")
+    generated_text = generated_text.replace("\n", "\n\n")
 
-    prompt_plus_generated = "<b>GPT prompt:</b> " + formatted_prompt + "<br/><br/><code>" + generated_text + "</code>"
+    prompt_plus_generated = "GPT prompt: " + formatted_prompt + "\n\n" + generated_text
 
     print("\n==== date/time: " + str(datetime.datetime.now() - datetime.timedelta(hours=5)) + " ====")
     print("prompt_plus_generated: " + prompt_plus_generated)
@@ -190,7 +205,7 @@ def set_openai_api_key(api_key):
     If no api_key, then None is returned.
     """
     if api_key:
-        llm = OpenAI(temperature=0, openai_api_key=api_key)
+        llm = OpenAI(temperature=0, openai_api_key=api_key, max_tokens=MAX_TOKENS)
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
         return chain, express_chain, llm
 
@@ -284,8 +299,56 @@ def chat(
         text_to_display = hidden_text + "\n\n" + output
     history.append((inp, text_to_display))
 
-    html_video, temp_file = do_html_video_speak(output)
-    return history, history, html_video, temp_file, ""
+    # html_video, temp_file = do_html_video_speak(output)
+    html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+
+    # return history, history, html_video, temp_file, ""
+    return history, history, html_audio, temp_aud_file, ""
+
+
+def do_html_audio_speak(words_to_speak, polly_language):
+    polly_client = boto3.Session(
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        region_name=os.environ["AWS_DEFAULT_REGION"]
+    ).client('polly')
+
+    voice_id, language_code, engine = POLLY_VOICE_DATA.get_voice(polly_language, "Female")
+    if not voice_id:
+        voice_id = "Joanna"
+        language_code = "en-US"
+        engine = NEURAL_ENGINE
+    response = polly_client.synthesize_speech(
+        Text=words_to_speak,
+        OutputFormat='mp3',
+        VoiceId=voice_id,
+        LanguageCode=language_code,
+        Engine=engine
+    )
+
+    html_audio = '<pre>no audio</pre>'
+
+    # Save the audio stream returned by Amazon Polly on Lambda's temp directory
+    if "AudioStream" in response:
+        with closing(response["AudioStream"]) as stream:
+            # output = os.path.join("/tmp/", "speech.mp3")
+
+            try:
+                with open('audios/tempfile.mp3', 'wb') as f:
+                    f.write(stream.read())
+                temp_aud_file = gr.File("audios/tempfile.mp3")
+                temp_aud_file_url = "/file=" + temp_aud_file.value['name']
+                html_audio = f'<audio autoplay><source src={temp_aud_file_url} type="audio/mp3"></audio>'
+            except IOError as error:
+                # Could not write to file, exit gracefully
+                print(error)
+                return None, None
+    else:
+        # The response didn't contain audio data, exit gracefully
+        print("Could not stream audio")
+        return None, None
+
+    return html_audio, "audios/tempfile.mp3"
 
 
 def do_html_video_speak(words_to_speak):
@@ -355,12 +418,18 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                                 show_label=False, lines=1, type='password')
 
         with gr.Row():
-            with gr.Column(scale=1, min_width=240):
+            with gr.Column(scale=1, min_width=100, visible=False):
                 my_file = gr.File(label="Upload a file", type="file", visible=False)
                 tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
                 tmp_file_url = "/file=" + tmp_file.value['name']
                 htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
                 video_html = gr.HTML(htm_video)
+
+                # my_aud_file = gr.File(label="Audio file", type="file", visible=True)
+                tmp_aud_file = gr.File("audios/tempfile.mp3", visible=False)
+                tmp_aud_file_url = "/file=" + tmp_aud_file.value['name']
+                htm_audio = f'<audio><source src={tmp_aud_file_url} type="audio/mp3"></audio>'
+                audio_html = gr.HTML(htm_audio)
 
             with gr.Column(scale=3):
                 chatbot = gr.Chatbot()
@@ -409,12 +478,12 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Translate to"):
         translate_to_radio = gr.Radio(label="Translate to:", choices=[
-            TRANSLATE_TO_DEFAULT, "Arabic", "British English", "Chinese (Simplified)", "Chinese (Traditional)",
-            "Czech", "Danish", "Dutch", "English", "Finnish", "French", "German",
-            "Greek", "Hebrew", "Hindi", "Hungarian", "Indonesian", "Italian", "Japanese",
-            "Korean", "Norwegian", "Old English", "Polish", "Portuguese", "Romanian",
-            "Russian", "Spanish", "Swedish", "Thai", "Turkish",
-            "Vietnamese",
+            TRANSLATE_TO_DEFAULT, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
+            "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
+            "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
+            "German", "German (Austrian)", "Hindi", "Icelandic", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
+            "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
+            "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Welsh",
             "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
             "Pirate", "Strange Planet expospeak technical talk", "Yoda"],
                                       value=TRANSLATE_TO_DEFAULT)
@@ -425,7 +494,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Lit style"):
         literary_style_radio = gr.Radio(label="Literary style:", choices=[
-            LITERARY_STYLE_DEFAULT, "Prose", "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
+            LITERARY_STYLE_DEFAULT, "Prose", "Summary", "Outline", "Bullets", "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
                                         value=LITERARY_STYLE_DEFAULT)
 
         literary_style_radio.change(update_foo,
@@ -491,7 +560,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Max words"):
         num_words_slider = gr.Slider(label="Max number of words to generate (0 for don't care)",
-                                     value=NUM_WORDS_DEFAULT, minimum=0, maximum=100, step=10)
+                                     value=NUM_WORDS_DEFAULT, minimum=0, maximum=MAX_WORDS, step=10)
         num_words_slider.change(update_foo,
                                 inputs=[num_words_slider, num_words_state],
                                 outputs=[num_words_state])
@@ -509,14 +578,16 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
                                  translate_to_state, literary_style_state],
-                   outputs=[chatbot, history_state, video_html, my_file, message])
+                   # outputs=[chatbot, history_state, video_html, my_file, message])
+                   outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
                                translate_to_state, literary_style_state],
-                 outputs=[chatbot, history_state, video_html, my_file, message])
+                 # outputs=[chatbot, history_state, video_html, my_file, message])
+                 outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
