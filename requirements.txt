@@ -1,5 +1,5 @@
 openai==0.26.1
-gradio==3.16.1
+gradio==3.16.2
 google-search-results
 google-api-python-client==2.72.0
 wolframalpha
