@@ -69,8 +69,8 @@ def transcribe(aud_inp):
     aud = whisper.load_audio(aud_inp)
     aud = whisper.pad_or_trim(aud)
     mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
-    _, probs = WHISPER_MODEL.detect_language(mel)
-    options = whisper.DecodingOptions()
+    # _, probs = WHISPER_MODEL.detect_language(mel)
+    options = whisper.DecodingOptions(language="ja")
     result = whisper.decode(WHISPER_MODEL, mel, options)
     print("result.text", result.text)
     result_text = ""
