@@ -73,7 +73,7 @@ def transcribe(aud_inp):
 
     options = whisper.DecodingOptions()
     # options = whisper.DecodingOptions(language="ja")
-    
+
     result = whisper.decode(WHISPER_MODEL, mel, options)
     print("result.text", result.text)
     result_text = ""
@@ -207,7 +207,7 @@ def set_openai_api_key(api_key):
     """Set the api key and return chain.
     If no api_key, then None is returned.
     """
-    if api_key:
+    if api_key and api_key.startswith("sk-") and len(api_key) > 50:
         llm = OpenAI(temperature=0, openai_api_key=api_key, max_tokens=MAX_TOKENS)
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
         return chain, express_chain, llm
