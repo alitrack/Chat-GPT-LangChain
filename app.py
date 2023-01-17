@@ -23,7 +23,7 @@ from io import StringIO
 import sys
 import re
 
-from openai.error import AuthenticationError, InvalidRequestError
+from openai.error import AuthenticationError, InvalidRequestError, RateLimitError
 
 # Pertains to Express-inator functionality
 from langchain.prompts import PromptTemplate
@@ -211,6 +211,7 @@ def set_openai_api_key(api_key):
         llm = OpenAI(temperature=0, openai_api_key=api_key, max_tokens=MAX_TOKENS)
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
         return chain, express_chain, llm
+    return None, None, None
 
 
 def run_chain(chain, inp, capture_hidden_text):
@@ -226,6 +227,8 @@ def run_chain(chain, inp, capture_hidden_text):
             output = chain.run(input=inp)
         except AuthenticationError as ae:
             error_msg = AUTH_ERR_MSG
+        except RateLimitError as rle:
+            error_msg = "\n\nRateLimitError, " + str(rle) + "\n\nPlease see https://help.openai.com/en/articles/6891831-error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details for more information."
         except ValueError as ve:
             error_msg = "\n\nValueError, " + str(ve)
         except InvalidRequestError as ire:
