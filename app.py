@@ -228,7 +228,8 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             error_msg = AUTH_ERR_MSG
         except RateLimitError as rle:
-            error_msg = "\n\nRateLimitError, " + str(rle) + "\n\nPlease see https://help.openai.com/en/articles/6891831-error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details for more information."
+            error_msg = "\n\nRateLimitError, " + str(
+                rle) + "\n\nPlease see https://help.openai.com/en/articles/6891831-error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details for more information."
         except ValueError as ve:
             error_msg = "\n\nValueError, " + str(ve)
         except InvalidRequestError as ire:
@@ -280,14 +281,15 @@ def run_chain(chain, inp, capture_hidden_text):
 
 def chat(
         inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
-        trace_chain: bool, express_chain: Optional[LLMChain], num_words, formality, anticipation_level, joy_level,
-        trust_level,
+        trace_chain: bool, speak_text: bool, express_chain: Optional[LLMChain],
+        num_words, formality, anticipation_level, joy_level, trust_level,
         fear_level, surprise_level, sadness_level, disgust_level, anger_level,
         translate_to, literary_style):
     """Execute the chat functionality."""
     print("\n==== date/time: " + str(datetime.datetime.now()) + " ====")
     print("inp: " + inp)
     print("trace_chain: ", trace_chain)
+    print("speak_text: ", speak_text)
     history = history or []
     # If chain is None, that is because no API key was provided.
     output = "Please paste your OpenAI key to use this application."
@@ -306,7 +308,9 @@ def chat(
     history.append((inp, text_to_display))
 
     # html_video, temp_file = do_html_video_speak(output)
-    html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+    html_audio, temp_aud_file = None, None
+    if speak_text:
+        html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
 
     # return history, history, html_video, temp_file, ""
     return history, history, html_audio, temp_aud_file, ""
@@ -400,6 +404,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     express_chain_state = gr.State()
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
     trace_chain_state = gr.State(False)
+    speak_text_state = gr.State(False)
 
     # Pertains to Express-inator functionality
     num_words_state = gr.State(NUM_WORDS_DEFAULT)
@@ -463,7 +468,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             inputs=message
         )
 
-    with gr.Tab("Tools"):
+    with gr.Tab("Settings"):
         tools_cb_group = gr.CheckboxGroup(label="Tools:", choices=TOOLS_LIST,
                                           value=TOOLS_DEFAULT_LIST)
         tools_cb_group.change(update_selected_tools,
@@ -474,10 +479,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                               outputs=[trace_chain_state])
 
+        speak_text_cb = gr.Checkbox(label="Speak text from agent", value=False)
+        speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
+                             outputs=[speak_text_state])
+
     with gr.Tab("Formality"):
         formality_radio = gr.Radio(label="Formality:",
-                                       choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
-                                       value=FORMALITY_DEFAULT)
+                                   choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
+                                   value=FORMALITY_DEFAULT)
         formality_radio.change(update_foo,
                                inputs=[formality_radio, formality_state],
                                outputs=[formality_state])
@@ -500,7 +509,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Lit style"):
         literary_style_radio = gr.Radio(label="Literary style:", choices=[
-            LITERARY_STYLE_DEFAULT, "Prose", "Summary", "Outline", "Bullets", "Poetry", "Haiku", "Limerick", "Joke", "Knock-knock"],
+            LITERARY_STYLE_DEFAULT, "Prose", "Summary", "Outline", "Bullets", "Poetry", "Haiku", "Limerick", "Joke",
+            "Knock-knock"],
                                         value=LITERARY_STYLE_DEFAULT)
 
         literary_style_radio.change(update_foo,
@@ -579,7 +589,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
-    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state,
+    message.submit(chat, inputs=[message, history_state, chain_state, trace_chain_state, speak_text_state,
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
@@ -587,7 +597,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                    # outputs=[chatbot, history_state, video_html, my_file, message])
                    outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
-    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state,
+    submit.click(chat, inputs=[message, history_state, chain_state, trace_chain_state, speak_text_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
