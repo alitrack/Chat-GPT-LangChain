@@ -228,7 +228,7 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             error_msg = AUTH_ERR_MSG
         except RateLimitError as rle:
-            error_msg = "\n\nRateLimitError."
+            error_msg = AUTH_ERR_MSG
         except ValueError as ve:
             error_msg = "\n\nValueError."
         except InvalidRequestError as ire:
@@ -265,7 +265,7 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             output = AUTH_ERR_MSG
         except RateLimitError as rle:
-            output = "\n\nRateLimitError."
+            output = AUTH_ERR_MSG
         except ValueError as ve:
             output = "\n\nValueError."
         except InvalidRequestError as ire:
