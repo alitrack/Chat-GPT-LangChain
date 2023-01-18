@@ -495,7 +495,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
             "German", "German (Austrian)", "Hindi", "Icelandic", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
             "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
-            "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Welsh",
+            "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh",
             "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
             "Pirate", "Strange Planet expospeak technical talk", "Yoda"],
                                       value=TRANSLATE_TO_DEFAULT)
