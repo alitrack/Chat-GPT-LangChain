@@ -263,17 +263,15 @@ def run_chain(chain, inp, capture_hidden_text):
         try:
             output = chain.run(input=inp)
         except AuthenticationError as ae:
-            output = AUTH_ERR_MSG
-            print("\nAuthenticationError: ", ae)
+            error_msg = AUTH_ERR_MSG
+        except RateLimitError as rle:
+            error_msg = "\n\nRateLimitError."
         except ValueError as ve:
-            output = "ValueError, " + str(ve)
-            print("\nValueError: ", ve)
+            error_msg = "\n\nValueError."
         except InvalidRequestError as ire:
-            output = BUG_FOUND_MSG + " Here are the details: InvalidRequestError, " + str(ire)
-            print("\nInvalidRequestError: ", ire)
+            error_msg = "\n\nInvalidRequestError."
         except Exception as e:
-            output = BUG_FOUND_MSG + " Here are the details: Exception, " + str(e)
-            print("\nException: ", e)
+            error_msg = "\n\nException."
 
     return output, hidden_text
 
