@@ -145,9 +145,9 @@ def transform_text(desc, express_chain, num_words, formality,
         elif literary_style == "Summary":
             literary_style_str = "as a summary, "
         elif literary_style == "Outline":
-            literary_style_str = "as an outline numbers and lower case letters"
+            literary_style_str = "as an outline numbers and lower case letters, "
         elif literary_style == "Bullets":
-            literary_style_str = "as bullet points using bullets"
+            literary_style_str = "as bullet points using bullets, "
         elif literary_style == "Poetry":
             literary_style_str = "as a poem, "
         elif literary_style == "Haiku":
@@ -239,13 +239,13 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             error_msg = AUTH_ERR_MSG
         except RateLimitError as rle:
-            error_msg = AUTH_ERR_MSG
+            error_msg = "\n\nRateLimitError: " + str(rle)
         except ValueError as ve:
-            error_msg = "\n\nValueError."
+            error_msg = "\n\nValueError: " + str(ve)
         except InvalidRequestError as ire:
-            error_msg = "\n\nInvalidRequestError."
+            error_msg = "\n\nInvalidRequestError: " + str(ire)
         except Exception as e:
-            error_msg = "\n\nException."
+            error_msg = "\n\n" + BUG_FOUND_MSG + ":\n\n" + str(e)
 
         sys.stdout = tmp
         hidden_text = hidden_text_io.getvalue()
@@ -276,13 +276,13 @@ def run_chain(chain, inp, capture_hidden_text):
         except AuthenticationError as ae:
             output = AUTH_ERR_MSG
         except RateLimitError as rle:
-            output = AUTH_ERR_MSG
+            output = "\n\nRateLimitError: " + str(rle)
         except ValueError as ve:
-            output = "\n\nValueError."
+            output = "\n\nValueError: " + str(ve)
         except InvalidRequestError as ire:
-            output = "\n\nInvalidRequestError."
+            output = "\n\nInvalidRequestError: " + str(ire)
         except Exception as e:
-            output = "\n\nException."
+            output = "\n\n" + BUG_FOUND_MSG + ":\n\n" + str(e)
 
     return output, hidden_text
 
@@ -291,6 +291,7 @@ class ChatWrapper:
 
     def __init__(self):
         self.lock = Lock()
+
     def __call__(
         self, api_key: str, inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
         trace_chain: bool, speak_text: bool, express_chain: Optional[LLMChain],
