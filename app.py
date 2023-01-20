@@ -468,7 +468,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                  lines=1)
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
-        # UNCOMMENT TO USE WHISPER
+        # UNCOMMENT TO-USE WHISPER
         # with gr.Row():
         #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
         #                                interactive=True, streaming=False)
