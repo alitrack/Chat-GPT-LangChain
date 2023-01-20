@@ -9,8 +9,8 @@ import gradio as gr
 import requests
 
 # UNCOMMENT TO USE WHISPER
-import warnings
-import whisper
+# import warnings
+# import whisper
 
 from langchain import ConversationChain, LLMChain
 
@@ -18,7 +18,6 @@ from langchain.agents import load_tools, initialize_agent
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 from threading import Lock
-
 
 # Console to variable
 from io import StringIO
@@ -59,9 +58,9 @@ POLLY_VOICE_DATA = PollyVoiceData()
 
 
 # UNCOMMENT TO USE WHISPER
-warnings.filterwarnings("ignore")
-WHISPER_MODEL = whisper.load_model("tiny")
-print("WHISPER_MODEL", WHISPER_MODEL)
+# warnings.filterwarnings("ignore")
+# WHISPER_MODEL = whisper.load_model("tiny")
+# print("WHISPER_MODEL", WHISPER_MODEL)
 
 
 # UNCOMMENT TO USE WHISPER
@@ -284,11 +283,11 @@ class ChatWrapper:
         self.lock = Lock()
 
     def __call__(
-        self, api_key: str, inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
-        trace_chain: bool, speak_text: bool, express_chain: Optional[LLMChain],
-        num_words, formality, anticipation_level, joy_level, trust_level,
-        fear_level, surprise_level, sadness_level, disgust_level, anger_level,
-        translate_to, literary_style
+            self, api_key: str, inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
+            trace_chain: bool, speak_text: bool, express_chain: Optional[LLMChain],
+            num_words, formality, anticipation_level, joy_level, trust_level,
+            fear_level, surprise_level, sadness_level, disgust_level, anger_level,
+            translate_to, literary_style
     ):
         """Execute the chat functionality."""
         self.lock.acquire()
@@ -308,7 +307,8 @@ class ChatWrapper:
                 openai.api_key = api_key
                 output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
 
-            output = transform_text(output, express_chain, num_words, formality, anticipation_level, joy_level, trust_level,
+            output = transform_text(output, express_chain, num_words, formality, anticipation_level, joy_level,
+                                    trust_level,
                                     fear_level, surprise_level, sadness_level, disgust_level, anger_level,
                                     translate_to, literary_style)
 
@@ -439,7 +439,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     with gr.Tab("Chat"):
         with gr.Row():
             with gr.Column():
-                gr.Markdown("<h4><center>Conversational Agent using GPT-3.5 & LangChain</center></h4>")
+                gr.Markdown(
+                    "<h4><center>Conversational Agent leveraging</br><center><i>GPT + WolframAlpha + Whisper + LangChain</center></i></h4>")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                                 show_label=False, lines=1, type='password')
@@ -513,7 +514,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             TRANSLATE_TO_DEFAULT, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
             "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
             "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
-            "German", "German (Austrian)", "Georgian", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
+            "German", "German (Austrian)", "Georgian", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese",
+            "Korean", "Norwegian", "Polish",
             "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
             "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh",
             "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
@@ -599,13 +601,20 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                 outputs=[num_words_state])
 
     gr.HTML("""
-    This application, developed by <a href='https://www.linkedin.com/in/javafxpert/'>James L. Weaver</a>, 
-    demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
-    When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.""")
+        <p>This application, developed by <a href='https://www.linkedin.com/in/javafxpert/'>James L. Weaver</a>, 
+        demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
+        When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
+        For faster inference without waiting in queue, you may duplicate the space.
+        </p>""")
 
-    gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
+    gr.HTML("""<center>
+        <a href="https://huggingface.co/spaces/JavaFXpert/Chat-GPT-LangChain?duplicate=true">
+        <img style="margin-top: 0em; margin-bottom: 0em" src="https://bit.ly/3gLdBN6" alt="Duplicate Space"></a>
+        Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a>
+        </center>""")
 
-    message.submit(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state, speak_text_state,
+    message.submit(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
+                                 speak_text_state,
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
@@ -613,7 +622,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                    # outputs=[chatbot, history_state, video_html, my_file, message])
                    outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
-    submit.click(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state, speak_text_state,
+    submit.click(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
+                               speak_text_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
