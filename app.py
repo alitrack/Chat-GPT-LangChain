@@ -58,9 +58,9 @@ POLLY_VOICE_DATA = PollyVoiceData()
 
 
 # UNCOMMENT TO USE WHISPER
-# warnings.filterwarnings("ignore")
-# WHISPER_MODEL = whisper.load_model("tiny")
-# print("WHISPER_MODEL", WHISPER_MODEL)
+warnings.filterwarnings("ignore")
+WHISPER_MODEL = whisper.load_model("tiny")
+print("WHISPER_MODEL", WHISPER_MODEL)
 
 
 # UNCOMMENT TO USE WHISPER
