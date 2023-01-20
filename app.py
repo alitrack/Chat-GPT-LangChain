@@ -480,7 +480,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                       "If x+y=10 and x-y=4, what are x and y?",
                       "How much did it rain in SF today?",
                       "Get me information about the movie 'Avatar'",
-                      "What are the top tech headlines in the US?",
+                      "What are the top tech headlines in the UK?",
                       "On the desk, you see two blue booklets, two purple booklets, and two yellow pairs of sunglasses - "
                       "if I remove all the pairs of sunglasses from the desk, how many purple items remain on it?"],
             inputs=message
