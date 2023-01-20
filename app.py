@@ -440,7 +440,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         with gr.Row():
             with gr.Column():
                 gr.Markdown(
-                    "<h4><center>Conversational Agent leveraging</br><center><i>GPT + WolframAlpha + Whisper + LangChain</center></i></h4>")
+                    "<h4><center>GPT + WolframAlpha + Whisper + LangChain</center></h4>")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                                 show_label=False, lines=1, type='password')
