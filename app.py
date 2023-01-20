@@ -9,8 +9,8 @@ import gradio as gr
 import requests
 
 # UNCOMMENT TO USE WHISPER
-# import warnings
-# import whisper
+import warnings
+import whisper
 
 from langchain import ConversationChain, LLMChain
 
@@ -59,29 +59,29 @@ POLLY_VOICE_DATA = PollyVoiceData()
 
 
 # UNCOMMENT TO USE WHISPER
-# warnings.filterwarnings("ignore")
-# WHISPER_MODEL = whisper.load_model("tiny")
-# print("WHISPER_MODEL", WHISPER_MODEL)
+warnings.filterwarnings("ignore")
+WHISPER_MODEL = whisper.load_model("tiny")
+print("WHISPER_MODEL", WHISPER_MODEL)
 
 
 # UNCOMMENT TO USE WHISPER
-# def transcribe(aud_inp):
-#     if aud_inp is None:
-#         return ""
-#     aud = whisper.load_audio(aud_inp)
-#     aud = whisper.pad_or_trim(aud)
-#     mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
-#     _, probs = WHISPER_MODEL.detect_language(mel)
-#
-#     options = whisper.DecodingOptions()
-#     # options = whisper.DecodingOptions(language="ja")
-#
-#     result = whisper.decode(WHISPER_MODEL, mel, options)
-#     print("result.text", result.text)
-#     result_text = ""
-#     if result and result.text:
-#         result_text = result.text
-#     return result_text
+def transcribe(aud_inp):
+    if aud_inp is None:
+        return ""
+    aud = whisper.load_audio(aud_inp)
+    aud = whisper.pad_or_trim(aud)
+    mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+    _, probs = WHISPER_MODEL.detect_language(mel)
+
+    options = whisper.DecodingOptions()
+    # options = whisper.DecodingOptions(language="ja")
+
+    result = whisper.decode(WHISPER_MODEL, mel, options)
+    print("result.text", result.text)
+    result_text = ""
+    if result and result.text:
+        result_text = result.text
+    return result_text
 
 
 # Pertains to Express-inator functionality
@@ -470,14 +470,15 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
         # UNCOMMENT TO USE WHISPER
-        # with gr.Row():
-        #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-        #                                interactive=True, streaming=False)
-        #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
+        with gr.Row():
+            audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+                                       interactive=True, streaming=False)
+            audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
 
         gr.Examples(
             examples=["How many people live in Canada?",
                       "What is 2 to the 30th power?",
+                      "If x+y=10 and x-y=4, what are x and y?",
                       "How much did it rain in SF today?",
                       "Get me information about the movie 'Avatar'",
                       "What are the top tech headlines in the US?",
@@ -514,7 +515,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             TRANSLATE_TO_DEFAULT, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
             "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
             "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
-            "German", "German (Austrian)", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
+            "German", "German (Austrian)", "Georgian", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
             "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
             "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh",
             "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
