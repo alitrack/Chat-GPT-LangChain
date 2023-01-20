@@ -1,5 +1,5 @@
 ---
-title: Chat GPT LangChain
+title: GPT+WolframAlpha+Whisper
 emoji: 👀
 colorFrom: red
 colorTo: gray
