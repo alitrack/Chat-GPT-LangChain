@@ -514,7 +514,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             TRANSLATE_TO_DEFAULT, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
             "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
             "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
-            "German", "German (Austrian)", "Hindi", "Icelandic", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
+            "German", "German (Austrian)", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Norwegian", "Polish",
             "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
             "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh",
             "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
