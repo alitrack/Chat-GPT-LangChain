@@ -600,10 +600,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                 outputs=[num_words_state])
 
     gr.HTML("""
-    This application demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
-    When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
-    On a desktop, the agent will often speak using using an animated avatar from 
-    <a href='https://exh.ai/'>Ex-Human</a>.""")
+    This application, developed by <a href='https://www.linkedin.com/in/javafxpert/'>James L. Weaver</a>, 
+    demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
+    When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.""")
 
     gr.HTML("<center>Powered by <a href='https://github.com/hwchase17/langchain'>LangChain 🦜️🔗</a></center>")
 
