@@ -214,13 +214,6 @@ def set_openai_api_key(api_key):
         llm = OpenAI(temperature=0, max_tokens=MAX_TOKENS)
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
         os.environ["OPENAI_API_KEY"] = ""
-
-        # print the object identifier of the llm, chain, and express_chain
-        print("== In set_openai_api_key ==")
-        print("llm id: " + str(id(llm)))
-        print("chain id: " + str(id(chain)))
-        print("express_chain id: " + str(id(express_chain)))
-
         return chain, express_chain, llm
     return None, None, None
 
