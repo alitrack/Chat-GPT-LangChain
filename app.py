@@ -284,7 +284,7 @@ class ChatWrapper:
 
     def __call__(
             self, api_key: str, inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
-            trace_chain: bool, speak_text: bool, express_chain: Optional[LLMChain],
+            trace_chain: bool, speak_text: bool, monologue: bool, express_chain: Optional[LLMChain],
             num_words, formality, anticipation_level, joy_level, trust_level,
             fear_level, surprise_level, sadness_level, disgust_level, anger_level,
             translate_to, literary_style
@@ -305,7 +305,10 @@ class ChatWrapper:
                 # Set OpenAI key
                 import openai
                 openai.api_key = api_key
-                output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
+                if not monologue:
+                    output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
+                else:
+                    output, hidden_text = inp, None
 
             output = transform_text(output, express_chain, num_words, formality, anticipation_level, joy_level,
                                     trust_level,
@@ -421,6 +424,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
     trace_chain_state = gr.State(False)
     speak_text_state = gr.State(False)
+    monologue_state = gr.State(False)  # Takes the input and repeats it back to the user, optionally transforming it.
 
     # Pertains to Express-inator functionality
     num_words_state = gr.State(NUM_WORDS_DEFAULT)
@@ -501,13 +505,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
                              outputs=[speak_text_state])
 
-    with gr.Tab("Formality"):
-        formality_radio = gr.Radio(label="Formality:",
-                                   choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
-                                   value=FORMALITY_DEFAULT)
-        formality_radio.change(update_foo,
-                               inputs=[formality_radio, formality_state],
-                               outputs=[formality_state])
+        monologue_cb = gr.Checkbox(label="Translate/restate what you enter (no conversational agent)", value=False)
+        monologue_cb.change(update_foo, inputs=[monologue_cb, monologue_state],
+                            outputs=[monologue_state])
 
     with gr.Tab("Translate to"):
         translate_to_radio = gr.Radio(label="Translate to:", choices=[
@@ -525,6 +525,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         translate_to_radio.change(update_foo,
                                   inputs=[translate_to_radio, translate_to_state],
                                   outputs=[translate_to_state])
+
+    with gr.Tab("Formality"):
+        formality_radio = gr.Radio(label="Formality:",
+                                   choices=[FORMALITY_DEFAULT, "Casual", "Polite", "Honorific"],
+                                   value=FORMALITY_DEFAULT)
+        formality_radio.change(update_foo,
+                               inputs=[formality_radio, formality_state],
+                               outputs=[formality_state])
 
     with gr.Tab("Lit style"):
         literary_style_radio = gr.Radio(label="Literary style:", choices=[
@@ -614,7 +622,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         </center>""")
 
     message.submit(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
-                                 speak_text_state,
+                                 speak_text_state, monologue_state,
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
@@ -623,7 +631,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                    outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     submit.click(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
-                               speak_text_state,
+                               speak_text_state, monologue_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
