@@ -468,11 +468,11 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                  lines=1)
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
-        # UNCOMMENT TO-USE WHISPER
-        # with gr.Row():
-        #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-        #                                interactive=True, streaming=False)
-        #     audio_comp.change(transcribe, inputs=[audio_comp], outputs=[message])
+        # UNCOMMENT TO USE WHISPER
+        with gr.Row():
+            audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+                                       interactive=True, streaming=False)
+            audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
 
         gr.Examples(
             examples=["How many people live in Canada?",
@@ -480,7 +480,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                       "If x+y=10 and x-y=4, what are x and y?",
                       "How much did it rain in SF today?",
                       "Get me information about the movie 'Avatar'",
-                      "What are the top tech headlines in the UK?",
+                      "What are the top tech headlines in the US?",
                       "On the desk, you see two blue booklets, two purple booklets, and two yellow pairs of sunglasses - "
                       "if I remove all the pairs of sunglasses from the desk, how many purple items remain on it?"],
             inputs=message
