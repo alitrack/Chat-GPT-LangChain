@@ -469,10 +469,10 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
         # UNCOMMENT TO USE WHISPER
-        with gr.Row():
-            audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-                                       interactive=True, streaming=False)
-            audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
+        # with gr.Row():
+        #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+        #                                interactive=True, streaming=False)
+        #     audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
 
         gr.Examples(
             examples=["How many people live in Canada?",
