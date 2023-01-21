@@ -443,8 +443,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     with gr.Tab("Chat"):
         with gr.Row():
             with gr.Column():
-                gr.Markdown(
-                    "<h4><center>GPT + WolframAlpha + Whisper</center></h4>")
+                gr.HTML(
+                    """<b><center>GPT + WolframAlpha</center></b>
+                    <p><center>New feature in Settings: Babel fish mode</center></p>""")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                                 show_label=False, lines=1, type='password')
@@ -505,7 +506,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
                              outputs=[speak_text_state])
 
-        monologue_cb = gr.Checkbox(label="Translate/restate what you enter (no conversational agent)", value=False)
+        monologue_cb = gr.Checkbox(label="Babel fish mode (translate/restate what you enter, no conversational agent)", value=False)
         monologue_cb.change(update_foo, inputs=[monologue_cb, monologue_state],
                             outputs=[monologue_state])
 
