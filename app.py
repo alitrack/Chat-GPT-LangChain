@@ -296,6 +296,7 @@ class ChatWrapper:
             print("inp: " + inp)
             print("trace_chain: ", trace_chain)
             print("speak_text: ", speak_text)
+            print("monologue: ", monologue)
             history = history or []
             # If chain is None, that is because no API key was provided.
             output = "Please paste your OpenAI key to use this application."
