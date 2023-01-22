@@ -1,5 +1,5 @@
 ---
-title: GPT+WolframAlpha
+title: GPT+WolframAlpha+Whisper
 emoji: 👀
 colorFrom: red
 colorTo: gray

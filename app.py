@@ -9,8 +9,8 @@ import gradio as gr
 import requests
 
 # UNCOMMENT TO USE WHISPER
-# import warnings
-# import whisper
+import warnings
+import whisper
 
 from langchain import ConversationChain, LLMChain
 
@@ -34,8 +34,8 @@ from polly_utils import PollyVoiceData, NEURAL_ENGINE
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
-TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'google-search', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api',
-              'open-meteo-api']
+TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'pal-math', 'pal-colored-objects', 'news-api', 'tmdb-api',
+              'open-meteo-api']  # 'google-search'
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
 AUTH_ERR_MSG = "Please paste your OpenAI key."
@@ -56,29 +56,34 @@ PROMPT_TEMPLATE = PromptTemplate(
 
 POLLY_VOICE_DATA = PollyVoiceData()
 
-
-# UNCOMMENT TO USE WHISPER
-# warnings.filterwarnings("ignore")
-# WHISPER_MODEL = whisper.load_model("tiny")
-# print("WHISPER_MODEL", WHISPER_MODEL)
+# Pertains to WHISPER functionality
+WHISPER_DETECT_LANG = "Detect language"
 
 
 # UNCOMMENT TO USE WHISPER
-# def transcribe(aud_inp):
-#     if aud_inp is None:
-#         return ""
-#     aud = whisper.load_audio(aud_inp)
-#     aud = whisper.pad_or_trim(aud)
-#     mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
-#     _, probs = WHISPER_MODEL.detect_language(mel)
-#     options = whisper.DecodingOptions()
-#     # options = whisper.DecodingOptions(language="ja")
-#     result = whisper.decode(WHISPER_MODEL, mel, options)
-#     print("result.text", result.text)
-#     result_text = ""
-#     if result and result.text:
-#         result_text = result.text
-#     return result_text
+warnings.filterwarnings("ignore")
+WHISPER_MODEL = whisper.load_model("tiny")
+print("WHISPER_MODEL", WHISPER_MODEL)
+
+
+# UNCOMMENT TO USE WHISPER
+def transcribe(aud_inp, whisper_lang):
+    if aud_inp is None:
+        return ""
+    aud = whisper.load_audio(aud_inp)
+    aud = whisper.pad_or_trim(aud)
+    mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+    _, probs = WHISPER_MODEL.detect_language(mel)
+    options = whisper.DecodingOptions()
+    if whisper_lang != WHISPER_DETECT_LANG:
+        whisper_lang_code = POLLY_VOICE_DATA.get_whisper_lang_code(whisper_lang)
+        options = whisper.DecodingOptions(language=whisper_lang_code)
+    result = whisper.decode(WHISPER_MODEL, mel, options)
+    print("result.text", result.text)
+    result_text = ""
+    if result and result.text:
+        result_text = result.text
+    return result_text
 
 
 # Pertains to Express-inator functionality
@@ -441,11 +446,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     translate_to_state = gr.State(TRANSLATE_TO_DEFAULT)
     literary_style_state = gr.State(LITERARY_STYLE_DEFAULT)
 
+    # Pertains to WHISPER functionality
+    whisper_lang_state = gr.State(WHISPER_DETECT_LANG)
+
     with gr.Tab("Chat"):
         with gr.Row():
             with gr.Column():
                 gr.HTML(
-                    """<b><center>GPT + WolframAlpha</center></b>
+                    """<b><center>GPT + WolframAlpha + Whisper</center></b>
                     <p><center>New feature in Settings: Babel fish mode</center></p>""")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
@@ -475,10 +483,10 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
         # UNCOMMENT TO USE WHISPER
-        # with gr.Row():
-        #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-        #                                interactive=True, streaming=False)
-        #     audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
+        with gr.Row():
+            audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+                                       interactive=True, streaming=False)
+            audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
 
         gr.Examples(
             examples=["How many people live in Canada?",
@@ -511,6 +519,21 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                    value=False)
         monologue_cb.change(update_foo, inputs=[monologue_cb, monologue_state],
                             outputs=[monologue_state])
+
+    with gr.Tab("Whisper STT"):
+        whisper_lang_radio = gr.Radio(label="Whisper speech-to-text language:", choices=[
+            WHISPER_DETECT_LANG, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
+            "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
+            "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
+            "German", "German (Austrian)", "Georgian", "Hindi", "Icelandic", "Indonesian", "Italian", "Japanese",
+            "Korean", "Norwegian", "Polish",
+            "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
+            "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh"],
+                                      value=WHISPER_DETECT_LANG)
+
+        whisper_lang_radio.change(update_foo,
+                                  inputs=[whisper_lang_radio, whisper_lang_state],
+                                  outputs=[whisper_lang_state])
 
     with gr.Tab("Translate to"):
         translate_to_radio = gr.Radio(label="Translate to:", choices=[
