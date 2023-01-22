@@ -507,7 +507,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
                              outputs=[speak_text_state])
 
-        monologue_cb = gr.Checkbox(label="Babel fish mode (translate/restate what you enter, no conversational agent)", value=False)
+        monologue_cb = gr.Checkbox(label="Babel fish mode (translate/restate what you enter, no conversational agent)",
+                                   value=False)
         monologue_cb.change(update_foo, inputs=[monologue_cb, monologue_state],
                             outputs=[monologue_state])
 
@@ -616,6 +617,17 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
         For faster inference without waiting in queue, you may duplicate the space.
         </p>""")
+
+    gr.HTML("""
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="business" value="AK8BVNALBXSPQ" />
+<input type="hidden" name="no_recurring" value="0" />
+<input type="hidden" name="item_name" value="Please consider helping to defray the cost of APIs such as SerpAPI and WolframAlpha that this app uses." />
+<input type="hidden" name="currency_code" value="USD" />
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+</form>
+    """)
 
     gr.HTML("""<center>
         <a href="https://huggingface.co/spaces/JavaFXpert/Chat-GPT-LangChain?duplicate=true">
