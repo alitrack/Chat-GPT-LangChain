@@ -38,7 +38,7 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'pal-math', 'pal-colored-objects', 'ne
               'open-meteo-api']  # 'google-search'
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
-AUTH_ERR_MSG = "Please paste your OpenAI key."
+AUTH_ERR_MSG = "Please paste your OpenAI key. It is not necessary to hit a button or key after pasting it."
 MAX_TOKENS = 512
 
 # Pertains to Express-inator functionality
@@ -47,11 +47,12 @@ MAX_WORDS = 400
 FORMALITY_DEFAULT = "N/A"
 TEMPERATURE_DEFAULT = 0.5
 EMOTION_DEFAULT = "N/A"
+LANG_LEVEL_DEFAULT = "N/A"
 TRANSLATE_TO_DEFAULT = "N/A"
 LITERARY_STYLE_DEFAULT = "N/A"
 PROMPT_TEMPLATE = PromptTemplate(
-    input_variables=["original_words", "num_words", "formality", "emotions", "translate_to", "literary_style"],
-    template="Restate {num_words}{formality}{emotions}{translate_to}{literary_style}the following: \n{original_words}\n",
+    input_variables=["original_words", "num_words", "formality", "emotions", "lang_level", "translate_to", "literary_style"],
+    template="Restate {num_words}{formality}{emotions}{lang_level}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
 
 POLLY_VOICE_DATA = PollyVoiceData()
@@ -90,7 +91,7 @@ def transcribe(aud_inp, whisper_lang):
 def transform_text(desc, express_chain, num_words, formality,
                    anticipation_level, joy_level, trust_level,
                    fear_level, surprise_level, sadness_level, disgust_level, anger_level,
-                   translate_to, literary_style):
+                   lang_level, translate_to, literary_style):
     num_words_prompt = ""
     if num_words and int(num_words) != 0:
         num_words_prompt = "using up to " + str(num_words) + " words, "
@@ -136,9 +137,13 @@ def transform_text(desc, express_chain, num_words, formality,
         else:
             emotions_str = "with emotions of " + ", ".join(emotions[:-1]) + " and " + emotions[-1] + ", "
 
+    lang_level_str = ""
+    if lang_level != LANG_LEVEL_DEFAULT:
+        lang_level_str = "at a " + lang_level + " level, " if translate_to == TRANSLATE_TO_DEFAULT else ""
+
     translate_to_str = ""
     if translate_to != TRANSLATE_TO_DEFAULT:
-        translate_to_str = "translated to " + translate_to + ", "
+        translate_to_str = "translated to " + ("" if lang_level == TRANSLATE_TO_DEFAULT else lang_level + " level ") + translate_to + ", "
 
     literary_style_str = ""
     if literary_style != LITERARY_STYLE_DEFAULT:
@@ -166,15 +171,16 @@ def transform_text(desc, express_chain, num_words, formality,
         num_words=num_words_prompt,
         formality=formality_str,
         emotions=emotions_str,
+        lang_level=lang_level_str,
         translate_to=translate_to_str,
         literary_style=literary_style_str
     )
 
-    trans_instr = num_words_prompt + formality_str + emotions_str + translate_to_str + literary_style_str
+    trans_instr = num_words_prompt + formality_str + emotions_str + lang_level_str + translate_to_str + literary_style_str
     if express_chain and len(trans_instr.strip()) > 0:
         generated_text = express_chain.run(
             {'original_words': desc, 'num_words': num_words_prompt, 'formality': formality_str,
-             'emotions': emotions_str, 'translate_to': translate_to_str,
+             'emotions': emotions_str, 'lang_level': lang_level_str, 'translate_to': translate_to_str,
              'literary_style': literary_style_str}).strip()
     else:
         print("Not transforming text")
@@ -292,7 +298,7 @@ class ChatWrapper:
             trace_chain: bool, speak_text: bool, monologue: bool, express_chain: Optional[LLMChain],
             num_words, formality, anticipation_level, joy_level, trust_level,
             fear_level, surprise_level, sadness_level, disgust_level, anger_level,
-            translate_to, literary_style
+            lang_level, translate_to, literary_style
     ):
         """Execute the chat functionality."""
         self.lock.acquire()
@@ -304,7 +310,8 @@ class ChatWrapper:
             print("monologue: ", monologue)
             history = history or []
             # If chain is None, that is because no API key was provided.
-            output = "Please paste your OpenAI key to use this application."
+            output = "Please paste your OpenAI key to use this application. It is not necessary to hit a button or " \
+                     "key after pasting it."
             hidden_text = output
 
             if chain and chain != "":
@@ -319,7 +326,7 @@ class ChatWrapper:
             output = transform_text(output, express_chain, num_words, formality, anticipation_level, joy_level,
                                     trust_level,
                                     fear_level, surprise_level, sadness_level, disgust_level, anger_level,
-                                    translate_to, literary_style)
+                                    lang_level, translate_to, literary_style)
 
             text_to_display = output
             if trace_chain:
@@ -443,6 +450,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     sadness_level_state = gr.State(EMOTION_DEFAULT)
     disgust_level_state = gr.State(EMOTION_DEFAULT)
     anger_level_state = gr.State(EMOTION_DEFAULT)
+    lang_level_state = gr.State(LANG_LEVEL_DEFAULT)
     translate_to_state = gr.State(TRANSLATE_TO_DEFAULT)
     literary_style_state = gr.State(LITERARY_STYLE_DEFAULT)
 
@@ -536,7 +544,14 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                   outputs=[whisper_lang_state])
 
     with gr.Tab("Translate to"):
-        translate_to_radio = gr.Radio(label="Translate to:", choices=[
+        lang_level_radio = gr.Radio(label="Language level:", choices=[
+            LANG_LEVEL_DEFAULT, "1st grade", "2nd grade", "3rd grade", "4th grade", "5th grade", "6th grade",
+            "7th grade", "8th grade", "9th grade", "10th grade", "11th grade", "12th grade", "University"],
+                                    value=LANG_LEVEL_DEFAULT)
+        lang_level_radio.change(update_foo, inputs=[lang_level_radio, lang_level_state],
+                                outputs=[lang_level_state])
+
+        translate_to_radio = gr.Radio(label="Language:", choices=[
             TRANSLATE_TO_DEFAULT, "Arabic", "Arabic (Gulf)", "Catalan", "Chinese (Cantonese)", "Chinese (Mandarin)",
             "Danish", "Dutch", "English (Australian)", "English (British)", "English (Indian)", "English (New Zealand)",
             "English (South African)", "English (US)", "English (Welsh)", "Finnish", "French", "French (Canadian)",
@@ -663,7 +678,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
-                                 translate_to_state, literary_style_state],
+                                 lang_level_state, translate_to_state, literary_style_state],
                    # outputs=[chatbot, history_state, video_html, my_file, message])
                    outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
@@ -672,7 +687,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
-                               translate_to_state, literary_style_state],
+                               lang_level_state, translate_to_state, literary_style_state],
                  # outputs=[chatbot, history_state, video_html, my_file, message])
                  outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
