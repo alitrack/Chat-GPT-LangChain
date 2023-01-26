@@ -30,6 +30,7 @@ from openai.error import AuthenticationError, InvalidRequestError, RateLimitErro
 from langchain.prompts import PromptTemplate
 
 from polly_utils import PollyVoiceData, NEURAL_ENGINE
+from azure_utils import AzureVoiceData
 
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
@@ -38,8 +39,12 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'pal-math', 'pal-colored-objects', 'ne
               'open-meteo-api']  # 'google-search'
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
-AUTH_ERR_MSG = "Please paste your OpenAI key. It is not necessary to hit a button or key after pasting it."
+AUTH_ERR_MSG = "Please paste your OpenAI key from openai.com to use this application. It is not necessary to hit a button or key after pasting it."
 MAX_TOKENS = 512
+
+LOOPING_TALKING_HEAD = "videos/Masahiro.mp4"
+TALKING_HEAD_WIDTH = "192"
+MAX_TALKING_HEAD_TEXT_LENGTH = 155
 
 # Pertains to Express-inator functionality
 NUM_WORDS_DEFAULT = 0
@@ -56,6 +61,7 @@ PROMPT_TEMPLATE = PromptTemplate(
 )
 
 POLLY_VOICE_DATA = PollyVoiceData()
+AZURE_VOICE_DATA = AzureVoiceData()
 
 # Pertains to WHISPER functionality
 WHISPER_DETECT_LANG = "Detect language"
@@ -295,7 +301,7 @@ class ChatWrapper:
 
     def __call__(
             self, api_key: str, inp: str, history: Optional[Tuple[str, str]], chain: Optional[ConversationChain],
-            trace_chain: bool, speak_text: bool, monologue: bool, express_chain: Optional[LLMChain],
+            trace_chain: bool, speak_text: bool, talking_head: bool, monologue: bool, express_chain: Optional[LLMChain],
             num_words, formality, anticipation_level, joy_level, trust_level,
             fear_level, surprise_level, sadness_level, disgust_level, anger_level,
             lang_level, translate_to, literary_style
@@ -307,10 +313,11 @@ class ChatWrapper:
             print("inp: " + inp)
             print("trace_chain: ", trace_chain)
             print("speak_text: ", speak_text)
+            print("talking_head: ", talking_head)
             print("monologue: ", monologue)
             history = history or []
             # If chain is None, that is because no API key was provided.
-            output = "Please paste your OpenAI key to use this application. It is not necessary to hit a button or " \
+            output = "Please paste your OpenAI key from openai.com to use this application. It is not necessary to hit a button or " \
                      "key after pasting it."
             hidden_text = output
 
@@ -333,16 +340,32 @@ class ChatWrapper:
                 text_to_display = hidden_text + "\n\n" + output
             history.append((inp, text_to_display))
 
-            # html_video, temp_file = do_html_video_speak(output)
-            html_audio, temp_aud_file = None, None
+            html_video, temp_file, html_audio, temp_aud_file = None, None, None, None
             if speak_text:
-                html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+                if talking_head:
+                    if len(output) <= MAX_TALKING_HEAD_TEXT_LENGTH:
+                        html_video, temp_file = do_html_video_speak(output, translate_to)
+                    else:
+                        temp_file = LOOPING_TALKING_HEAD
+                        html_video = create_html_video(temp_file, TALKING_HEAD_WIDTH)
+                        html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+                else:
+                    html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+            else:
+                if talking_head:
+                    temp_file = LOOPING_TALKING_HEAD
+                    html_video = create_html_video(temp_file, TALKING_HEAD_WIDTH)
+                else:
+                    # html_audio, temp_aud_file = do_html_audio_speak(output, translate_to)
+                    # html_video = create_html_video(temp_file, "128")
+                    pass
+
         except Exception as e:
             raise e
         finally:
             self.lock.release()
-        # return history, history, html_video, temp_file, ""
-        return history, history, html_audio, temp_aud_file, ""
+        return history, history, html_video, temp_file, html_audio, temp_aud_file, ""
+        # return history, history, html_audio, temp_aud_file, ""
 
 
 chat = ChatWrapper()
@@ -355,9 +378,11 @@ def do_html_audio_speak(words_to_speak, polly_language):
         region_name=os.environ["AWS_DEFAULT_REGION"]
     ).client('polly')
 
-    voice_id, language_code, engine = POLLY_VOICE_DATA.get_voice(polly_language, "Female")
+    # voice_id, language_code, engine = POLLY_VOICE_DATA.get_voice(polly_language, "Female")
+    voice_id, language_code, engine = POLLY_VOICE_DATA.get_voice(polly_language, "Male")
     if not voice_id:
-        voice_id = "Joanna"
+        # voice_id = "Joanna"
+        voice_id = "Matthew"
         language_code = "en-US"
         engine = NEURAL_ENGINE
     response = polly_client.synthesize_speech(
@@ -393,24 +418,39 @@ def do_html_audio_speak(words_to_speak, polly_language):
     return html_audio, "audios/tempfile.mp3"
 
 
-def do_html_video_speak(words_to_speak):
+def create_html_video(file_name, width):
+    temp_file_url = "/file=" + tmp_file.value['name']
+    html_video = f'<video width={width} height={width} autoplay muted loop><source src={temp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
+    return html_video
+
+
+def do_html_video_speak(words_to_speak, azure_language):
+    azure_voice = AZURE_VOICE_DATA.get_voice(azure_language, "Male")
+    if not azure_voice:
+        azure_voice = "en-US-ChristopherNeural"
+
     headers = {"Authorization": f"Bearer {os.environ['EXHUMAN_API_KEY']}"}
     body = {
         'bot_name': 'Masahiro',
         'bot_response': words_to_speak,
-        'voice_name': 'Masahiro-EN'
+        'azure_voice': azure_voice,
+        'azure_style': 'friendly',
+        'animation_pipeline': 'high_speed',
     }
     api_endpoint = "https://api.exh.ai/animations/v1/generate_lipsync"
     res = requests.post(api_endpoint, json=body, headers=headers)
+    print("res.status_code: ", res.status_code)
 
     html_video = '<pre>no video</pre>'
     if isinstance(res.content, bytes):
         response_stream = io.BytesIO(res.content)
+        print("len(res.content)): ", len(res.content))
+
         with open('videos/tempfile.mp4', 'wb') as f:
             f.write(response_stream.read())
         temp_file = gr.File("videos/tempfile.mp4")
         temp_file_url = "/file=" + temp_file.value['name']
-        html_video = f'<video width="256" height="256" autoplay><source src={temp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
+        html_video = f'<video width={TALKING_HEAD_WIDTH} height={TALKING_HEAD_WIDTH} autoplay><source src={temp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
     else:
         print('video url unknown')
     return html_video, "videos/tempfile.mp4"
@@ -421,6 +461,17 @@ def update_selected_tools(widget, state, llm):
         state = widget
         chain, express_chain = load_chain(state, llm)
         return state, llm, chain, express_chain
+
+
+def update_talking_head(widget, state):
+    if widget:
+        state = widget
+
+        video_html_talking_head = create_html_video(LOOPING_TALKING_HEAD, TALKING_HEAD_WIDTH)
+        return state, video_html_talking_head
+    else:
+        # return state, create_html_video(LOOPING_TALKING_HEAD, "32")
+        return None, "<pre></pre>"
 
 
 def update_foo(widget, state):
@@ -437,6 +488,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     tools_list_state = gr.State(TOOLS_DEFAULT_LIST)
     trace_chain_state = gr.State(False)
     speak_text_state = gr.State(False)
+    talking_head_state = gr.State(True)
     monologue_state = gr.State(False)  # Takes the input and repeats it back to the user, optionally transforming it.
 
     # Pertains to Express-inator functionality
@@ -462,17 +514,21 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             with gr.Column():
                 gr.HTML(
                     """<b><center>GPT + WolframAlpha + Whisper</center></b>
-                    <p><center>New feature in Settings: Babel fish mode</center></p>""")
+                    <p><center>New feature in <b>Translate to</b>: Choose <b>Language level</b> (e.g. for conversation practice or explain like I'm five)</center></p>""")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                                 show_label=False, lines=1, type='password')
 
         with gr.Row():
-            with gr.Column(scale=1, min_width=100, visible=False):
+            with gr.Column(scale=1, min_width=TALKING_HEAD_WIDTH, visible=True):
+                speak_text_cb = gr.Checkbox(label="Enable speech", value=False)
+                speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
+                                     outputs=[speak_text_state])
+
                 my_file = gr.File(label="Upload a file", type="file", visible=False)
-                tmp_file = gr.File("videos/Masahiro.mp4", visible=False)
-                tmp_file_url = "/file=" + tmp_file.value['name']
-                htm_video = f'<video width="256" height="256" autoplay muted loop><source src={tmp_file_url} type="video/mp4" poster="Masahiro.png"></video>'
+                tmp_file = gr.File(LOOPING_TALKING_HEAD, visible=False)
+                # tmp_file_url = "/file=" + tmp_file.value['name']
+                htm_video = create_html_video(LOOPING_TALKING_HEAD, TALKING_HEAD_WIDTH)
                 video_html = gr.HTML(htm_video)
 
                 # my_aud_file = gr.File(label="Audio file", type="file", visible=True)
@@ -481,7 +537,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                 htm_audio = f'<audio><source src={tmp_aud_file_url} type="audio/mp3"></audio>'
                 audio_html = gr.HTML(htm_audio)
 
-            with gr.Column(scale=3):
+            with gr.Column(scale=7):
                 chatbot = gr.Chatbot()
 
         with gr.Row():
@@ -519,9 +575,13 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         trace_chain_cb.change(update_foo, inputs=[trace_chain_cb, trace_chain_state],
                               outputs=[trace_chain_state])
 
-        speak_text_cb = gr.Checkbox(label="Speak text from agent", value=False)
-        speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
-                             outputs=[speak_text_state])
+        # speak_text_cb = gr.Checkbox(label="Speak text from agent", value=False)
+        # speak_text_cb.change(update_foo, inputs=[speak_text_cb, speak_text_state],
+        #                      outputs=[speak_text_state])
+
+        talking_head_cb = gr.Checkbox(label="Show talking head", value=True)
+        talking_head_cb.change(update_talking_head, inputs=[talking_head_cb, talking_head_state],
+                             outputs=[talking_head_state, video_html])
 
         monologue_cb = gr.Checkbox(label="Babel fish mode (translate/restate what you enter, no conversational agent)",
                                    value=False)
@@ -653,6 +713,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         <p>This application, developed by <a href='https://www.linkedin.com/in/javafxpert/'>James L. Weaver</a>, 
         demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
         When necessary, it leverages tools for complex math, searching the internet, and accessing news and weather.
+        Uses talking heads from <a href='https://exh.ai/'>Ex-Human</a>.
         For faster inference without waiting in queue, you may duplicate the space.
         </p>""")
 
@@ -674,22 +735,22 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
         </center>""")
 
     message.submit(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
-                                 speak_text_state, monologue_state,
+                                 speak_text_state, talking_head_state, monologue_state,
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
                                  lang_level_state, translate_to_state, literary_style_state],
-                   # outputs=[chatbot, history_state, video_html, my_file, message])
-                   outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
+                   outputs=[chatbot, history_state, video_html, my_file, audio_html, tmp_aud_file, message])
+                   # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     submit.click(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
-                               speak_text_state, monologue_state,
+                               speak_text_state, talking_head_state, monologue_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
                                lang_level_state, translate_to_state, literary_style_state],
-                 # outputs=[chatbot, history_state, video_html, my_file, message])
-                 outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
+                 outputs=[chatbot, history_state, video_html, my_file, audio_html, tmp_aud_file, message])
+                 # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
