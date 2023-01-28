@@ -39,7 +39,8 @@ TOOLS_LIST = ['serpapi', 'wolfram-alpha', 'pal-math', 'pal-colored-objects', 'ne
               'open-meteo-api']  # 'google-search'
 TOOLS_DEFAULT_LIST = ['serpapi', 'pal-math']
 BUG_FOUND_MSG = "Congratulations, you've found a bug in this application!"
-AUTH_ERR_MSG = "Please paste your OpenAI key from openai.com to use this application. It is not necessary to hit a button or key after pasting it."
+# AUTH_ERR_MSG = "Please paste your OpenAI key from openai.com to use this application. It is not necessary to hit a button or key after pasting it."
+AUTH_ERR_MSG = "Please paste your OpenAI key from openai.com to use this application. "
 MAX_TOKENS = 512
 
 LOOPING_TALKING_HEAD = "videos/Masahiro.mp4"
@@ -244,7 +245,8 @@ def run_chain(chain, inp, capture_hidden_text):
         try:
             output = chain.run(input=inp)
         except AuthenticationError as ae:
-            error_msg = AUTH_ERR_MSG
+            error_msg = AUTH_ERR_MSG + str(datetime.datetime.now()) + ". " + str(ae)
+            print("error_msg", error_msg)
         except RateLimitError as rle:
             error_msg = "\n\nRateLimitError: " + str(rle)
         except ValueError as ve:
@@ -317,8 +319,7 @@ class ChatWrapper:
             print("monologue: ", monologue)
             history = history or []
             # If chain is None, that is because no API key was provided.
-            output = "Please paste your OpenAI key from openai.com to use this application. It is not necessary to hit a button or " \
-                     "key after pasting it."
+            output = "Please paste your OpenAI key from openai.com to use this app. " + str(datetime.datetime.now())
             hidden_text = output
 
             if chain and chain != "":
