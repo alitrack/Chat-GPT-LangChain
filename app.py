@@ -226,8 +226,11 @@ def set_openai_api_key(api_key):
     """
     if api_key and api_key.startswith("sk-") and len(api_key) > 50:
         os.environ["OPENAI_API_KEY"] = api_key
+        print(str(datetime.datetime.now()) + ": Before OpenAI, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
         llm = OpenAI(temperature=0, max_tokens=MAX_TOKENS)
+        print(str(datetime.datetime.now()) + ": After OpenAI, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
+        print(str(datetime.datetime.now()) + ": After load_chain, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
         os.environ["OPENAI_API_KEY"] = ""
         return chain, express_chain, llm
     return None, None, None
