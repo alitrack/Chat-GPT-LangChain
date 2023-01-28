@@ -283,7 +283,8 @@ def run_chain(chain, inp, capture_hidden_text):
         try:
             output = chain.run(input=inp)
         except AuthenticationError as ae:
-            output = AUTH_ERR_MSG
+            output = AUTH_ERR_MSG + str(datetime.datetime.now()) + ". " + str(ae)
+            print("output", output)
         except RateLimitError as rle:
             output = "\n\nRateLimitError: " + str(rle)
         except ValueError as ve:
