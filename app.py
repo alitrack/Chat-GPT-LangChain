@@ -32,6 +32,13 @@ from langchain.prompts import PromptTemplate
 from polly_utils import PollyVoiceData, NEURAL_ENGINE
 from azure_utils import AzureVoiceData
 
+# Pertains to question answering functionality
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores.faiss import FAISS
+from langchain.docstore.document import Document
+from langchain.chains.question_answering import load_qa_chain
+
 news_api_key = os.environ["NEWS_API_KEY"]
 tmdb_bearer_token = os.environ["TMDB_BEARER_TOKEN"]
 
@@ -57,7 +64,8 @@ LANG_LEVEL_DEFAULT = "N/A"
 TRANSLATE_TO_DEFAULT = "N/A"
 LITERARY_STYLE_DEFAULT = "N/A"
 PROMPT_TEMPLATE = PromptTemplate(
-    input_variables=["original_words", "num_words", "formality", "emotions", "lang_level", "translate_to", "literary_style"],
+    input_variables=["original_words", "num_words", "formality", "emotions", "lang_level", "translate_to",
+                     "literary_style"],
     template="Restate {num_words}{formality}{emotions}{lang_level}{translate_to}{literary_style}the following: \n{original_words}\n",
 )
 
@@ -150,7 +158,8 @@ def transform_text(desc, express_chain, num_words, formality,
 
     translate_to_str = ""
     if translate_to != TRANSLATE_TO_DEFAULT:
-        translate_to_str = "translated to " + ("" if lang_level == TRANSLATE_TO_DEFAULT else lang_level + " level ") + translate_to + ", "
+        translate_to_str = "translated to " + (
+            "" if lang_level == TRANSLATE_TO_DEFAULT else lang_level + " level ") + translate_to + ", "
 
     literary_style_str = ""
     if literary_style != LITERARY_STYLE_DEFAULT:
@@ -216,7 +225,6 @@ def load_chain(tools_list, llm):
 
         chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
         express_chain = LLMChain(llm=llm, prompt=PROMPT_TEMPLATE, verbose=True)
-
     return chain, express_chain
 
 
@@ -227,14 +235,22 @@ def set_openai_api_key(api_key):
     if api_key and api_key.startswith("sk-") and len(api_key) > 50:
         os.environ["OPENAI_API_KEY"] = api_key
         print("\n\n ++++++++++++++ Setting OpenAI API key ++++++++++++++ \n\n")
-        print(str(datetime.datetime.now()) + ": Before OpenAI, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
+        print(str(datetime.datetime.now()) + ": Before OpenAI, OPENAI_API_KEY length: " + str(
+            len(os.environ["OPENAI_API_KEY"])))
         llm = OpenAI(temperature=0, max_tokens=MAX_TOKENS)
-        print(str(datetime.datetime.now()) + ": After OpenAI, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
+        print(str(datetime.datetime.now()) + ": After OpenAI, OPENAI_API_KEY length: " + str(
+            len(os.environ["OPENAI_API_KEY"])))
         chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
-        print(str(datetime.datetime.now()) + ": After load_chain, OPENAI_API_KEY length: " + str(len(os.environ["OPENAI_API_KEY"])))
+
+        # Pertains to question answering functionality
+        embeddings = OpenAIEmbeddings()
+        qa_chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
+
+        print(str(datetime.datetime.now()) + ": After load_chain, OPENAI_API_KEY length: " + str(
+            len(os.environ["OPENAI_API_KEY"])))
         os.environ["OPENAI_API_KEY"] = ""
-        return chain, express_chain, llm
-    return None, None, None
+        return chain, express_chain, llm, embeddings, qa_chain
+    return None, None, None, None, None
 
 
 def run_chain(chain, inp, capture_hidden_text):
@@ -311,7 +327,7 @@ class ChatWrapper:
             trace_chain: bool, speak_text: bool, talking_head: bool, monologue: bool, express_chain: Optional[LLMChain],
             num_words, formality, anticipation_level, joy_level, trust_level,
             fear_level, surprise_level, sadness_level, disgust_level, anger_level,
-            lang_level, translate_to, literary_style
+            lang_level, translate_to, literary_style, qa_chain, docsearch, use_embeddings
     ):
         """Execute the chat functionality."""
         self.lock.acquire()
@@ -332,7 +348,15 @@ class ChatWrapper:
                 import openai
                 openai.api_key = api_key
                 if not monologue:
-                    output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
+                    if use_embeddings:
+                        output, hidden_text = "What's on your mind?", None
+                        if inp and inp.strip() != "" and docsearch:
+                            docs = docsearch.similarity_search(inp)
+                            output = qa_chain.run(input_documents=docs, question=inp)
+                        else:
+                            output = "Please supply some text in the the Embeddings tab."
+                    else:
+                        output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
                 else:
                     output, hidden_text = inp, None
 
@@ -486,6 +510,24 @@ def update_foo(widget, state):
         return state
 
 
+# Pertains to question answering functionality
+def update_embeddings(embeddings_text, embeddings, qa_chain):
+    if embeddings_text:
+        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        texts = text_splitter.split_text(embeddings_text)
+
+        docsearch = FAISS.from_texts(texts, embeddings)
+        print("Embeddings updated")
+        return docsearch
+
+
+# Pertains to question answering functionality
+def update_use_embeddings(widget, state):
+    if widget:
+        state = widget
+        return state
+
+
 with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     llm_state = gr.State()
     history_state = gr.State()
@@ -515,12 +557,18 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     # Pertains to WHISPER functionality
     whisper_lang_state = gr.State(WHISPER_DETECT_LANG)
 
+    # Pertains to question answering functionality
+    embeddings_state = gr.State()
+    qa_chain_state = gr.State()
+    docsearch_state = gr.State()
+    use_embeddings_state = gr.State(False)
+
     with gr.Tab("Chat"):
         with gr.Row():
             with gr.Column():
                 gr.HTML(
                     """<b><center>GPT + WolframAlpha + Whisper</center></b>
-                    <p><center>New feature in <b>Translate to</b>: Choose <b>Language level</b> (e.g. for conversation practice or explain like I'm five)</center></p>""")
+                    <p><center>New feature: <b>Embeddings</b></center></p>""")
 
             openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
                                                 show_label=False, lines=1, type='password')
@@ -587,7 +635,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
         talking_head_cb = gr.Checkbox(label="Show talking head", value=True)
         talking_head_cb.change(update_talking_head, inputs=[talking_head_cb, talking_head_state],
-                             outputs=[talking_head_state, video_html])
+                               outputs=[talking_head_state, video_html])
 
         monologue_cb = gr.Checkbox(label="Babel fish mode (translate/restate what you enter, no conversational agent)",
                                    value=False)
@@ -715,6 +763,20 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                 inputs=[num_words_slider, num_words_state],
                                 outputs=[num_words_state])
 
+    with gr.Tab("Embeddings"):
+        embeddings_text_box = gr.Textbox(label="Enter text for embeddings and hit Create:",
+                                         lines=20)
+
+        with gr.Row():
+            use_embeddings_cb = gr.Checkbox(label="Use embeddings", value=False)
+            use_embeddings_cb.change(update_use_embeddings, inputs=[use_embeddings_cb, use_embeddings_state],
+                                     outputs=[use_embeddings_state])
+
+            embeddings_text_submit = gr.Button(value="Create", variant="secondary").style(full_width=False)
+            embeddings_text_submit.click(update_embeddings,
+                                         inputs=[embeddings_text_box, embeddings_state, qa_chain_state],
+                                         outputs=[docsearch_state])
+
     gr.HTML("""
         <p>This application, developed by <a href='https://www.linkedin.com/in/javafxpert/'>James L. Weaver</a>, 
         demonstrates a conversational agent implemented with OpenAI GPT-3.5 and LangChain. 
@@ -745,21 +807,23 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                  express_chain_state, num_words_state, formality_state,
                                  anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                  surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
-                                 lang_level_state, translate_to_state, literary_style_state],
+                                 lang_level_state, translate_to_state, literary_style_state,
+                                 qa_chain_state, docsearch_state, use_embeddings_state],
                    outputs=[chatbot, history_state, video_html, my_file, audio_html, tmp_aud_file, message])
-                   # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
+    # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     submit.click(chat, inputs=[openai_api_key_textbox, message, history_state, chain_state, trace_chain_state,
                                speak_text_state, talking_head_state, monologue_state,
                                express_chain_state, num_words_state, formality_state,
                                anticipation_level_state, joy_level_state, trust_level_state, fear_level_state,
                                surprise_level_state, sadness_level_state, disgust_level_state, anger_level_state,
-                               lang_level_state, translate_to_state, literary_style_state],
+                               lang_level_state, translate_to_state, literary_style_state,
+                               qa_chain_state, docsearch_state, use_embeddings_state],
                  outputs=[chatbot, history_state, video_html, my_file, audio_html, tmp_aud_file, message])
-                 # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
+    # outputs=[chatbot, history_state, audio_html, tmp_aud_file, message])
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
-                                  outputs=[chain_state, express_chain_state, llm_state])
+                                  outputs=[chain_state, express_chain_state, llm_state, embeddings_state, qa_chain_state])
 
 block.launch(debug=True)
