@@ -9,8 +9,8 @@ import gradio as gr
 import requests
 
 # UNCOMMENT TO USE WHISPER
-import warnings
-import whisper
+# import warnings
+# import whisper
 
 from langchain import ConversationChain, LLMChain
 
@@ -77,29 +77,47 @@ WHISPER_DETECT_LANG = "Detect language"
 
 
 # UNCOMMENT TO USE WHISPER
-warnings.filterwarnings("ignore")
-WHISPER_MODEL = whisper.load_model("tiny")
-print("WHISPER_MODEL", WHISPER_MODEL)
+# warnings.filterwarnings("ignore")
+# WHISPER_MODEL = whisper.load_model("tiny")
+# print("WHISPER_MODEL", WHISPER_MODEL)
 
 
 # UNCOMMENT TO USE WHISPER
-def transcribe(aud_inp, whisper_lang):
-    if aud_inp is None:
+# def transcribe(aud_inp, whisper_lang):
+#     if aud_inp is None:
+#         return ""
+#     aud = whisper.load_audio(aud_inp)
+#     aud = whisper.pad_or_trim(aud)
+#     mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+#     _, probs = WHISPER_MODEL.detect_language(mel)
+#     options = whisper.DecodingOptions()
+#     if whisper_lang != WHISPER_DETECT_LANG:
+#         whisper_lang_code = POLLY_VOICE_DATA.get_whisper_lang_code(whisper_lang)
+#         options = whisper.DecodingOptions(language=whisper_lang_code)
+#     result = whisper.decode(WHISPER_MODEL, mel, options)
+#     print("result.text", result.text)
+#     result_text = ""
+#     if result and result.text:
+#         result_text = result.text
+#     return result_text
+
+# TEMPORARY FOR TESTING
+def transcribe_dummy(aud_inp_tb, whisper_lang):
+    if aud_inp_tb is None:
         return ""
-    aud = whisper.load_audio(aud_inp)
-    aud = whisper.pad_or_trim(aud)
-    mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
-    _, probs = WHISPER_MODEL.detect_language(mel)
-    options = whisper.DecodingOptions()
+    # aud = whisper.load_audio(aud_inp)
+    # aud = whisper.pad_or_trim(aud)
+    # mel = whisper.log_mel_spectrogram(aud).to(WHISPER_MODEL.device)
+    # _, probs = WHISPER_MODEL.detect_language(mel)
+    # options = whisper.DecodingOptions()
+    # options = whisper.DecodingOptions(language="ja")
+    # result = whisper.decode(WHISPER_MODEL, mel, options)
+    result_text = "Whisper will detect language"
     if whisper_lang != WHISPER_DETECT_LANG:
         whisper_lang_code = POLLY_VOICE_DATA.get_whisper_lang_code(whisper_lang)
-        options = whisper.DecodingOptions(language=whisper_lang_code)
-    result = whisper.decode(WHISPER_MODEL, mel, options)
-    print("result.text", result.text)
-    result_text = ""
-    if result and result.text:
-        result_text = result.text
-    return result_text
+        result_text = f"Whisper will use lang code: {whisper_lang_code}"
+    print("result_text", result_text)
+    return aud_inp_tb
 
 
 # Pertains to Express-inator functionality
@@ -601,10 +619,15 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             submit = gr.Button(value="Send", variant="secondary").style(full_width=False)
 
         # UNCOMMENT TO USE WHISPER
-        with gr.Row():
-            audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
-                                       interactive=True, streaming=False)
-            audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
+        # with gr.Row():
+        #     audio_comp = gr.Microphone(source="microphone", type="filepath", label="Just say it!",
+        #                                interactive=True, streaming=False)
+        #     audio_comp.change(transcribe, inputs=[audio_comp, whisper_lang_state], outputs=[message])
+
+        # TEMPORARY FOR TESTING
+        # with gr.Row():
+        #     audio_comp_tb = gr.Textbox(label="Just say it!", lines=1)
+        #     audio_comp_tb.submit(transcribe_dummy, inputs=[audio_comp_tb, whisper_lang_state], outputs=[message])
 
         gr.Examples(
             examples=["How many people live in Canada?",
