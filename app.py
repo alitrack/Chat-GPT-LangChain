@@ -243,7 +243,7 @@ def load_chain(tools_list, llm):
 
         chain = initialize_agent(tools, llm, agent="conversational-react-description", verbose=True, memory=memory)
         express_chain = LLMChain(llm=llm, prompt=PROMPT_TEMPLATE, verbose=True)
-    return chain, express_chain
+    return chain, express_chain, memory
 
 
 def set_openai_api_key(api_key):
@@ -258,7 +258,7 @@ def set_openai_api_key(api_key):
         llm = OpenAI(temperature=0, max_tokens=MAX_TOKENS)
         print(str(datetime.datetime.now()) + ": After OpenAI, OPENAI_API_KEY length: " + str(
             len(os.environ["OPENAI_API_KEY"])))
-        chain, express_chain = load_chain(TOOLS_DEFAULT_LIST, llm)
+        chain, express_chain, memory = load_chain(TOOLS_DEFAULT_LIST, llm)
 
         # Pertains to question answering functionality
         embeddings = OpenAIEmbeddings()
@@ -267,8 +267,8 @@ def set_openai_api_key(api_key):
         print(str(datetime.datetime.now()) + ": After load_chain, OPENAI_API_KEY length: " + str(
             len(os.environ["OPENAI_API_KEY"])))
         os.environ["OPENAI_API_KEY"] = ""
-        return chain, express_chain, llm, embeddings, qa_chain
-    return None, None, None, None, None
+        return chain, express_chain, llm, embeddings, qa_chain, memory
+    return None, None, None, None, None, None
 
 
 def run_chain(chain, inp, capture_hidden_text):
@@ -333,6 +333,12 @@ def run_chain(chain, inp, capture_hidden_text):
             output = "\n\n" + BUG_FOUND_MSG + ":\n\n" + str(e)
 
     return output, hidden_text
+
+
+def reset_memory(history, memory):
+    memory.clear()
+    history = []
+    return history, history, memory
 
 
 class ChatWrapper:
@@ -558,6 +564,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
     speak_text_state = gr.State(False)
     talking_head_state = gr.State(True)
     monologue_state = gr.State(False)  # Takes the input and repeats it back to the user, optionally transforming it.
+    memory_state = gr.State()
 
     # Pertains to Express-inator functionality
     num_words_state = gr.State(NUM_WORDS_DEFAULT)
@@ -666,6 +673,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                    value=False)
         monologue_cb.change(update_foo, inputs=[monologue_cb, monologue_state],
                             outputs=[monologue_state])
+
+        reset_btn = gr.Button(value="Reset chat", variant="secondary").style(full_width=False)
+        reset_btn.click(reset_memory, inputs=[history_state, memory_state], outputs=[chatbot, history_state, memory_state])
 
     with gr.Tab("Whisper STT"):
         whisper_lang_radio = gr.Radio(label="Whisper speech-to-text language:", choices=[
@@ -849,6 +859,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     openai_api_key_textbox.change(set_openai_api_key,
                                   inputs=[openai_api_key_textbox],
-                                  outputs=[chain_state, express_chain_state, llm_state, embeddings_state, qa_chain_state])
+                                  outputs=[chain_state, express_chain_state, llm_state, embeddings_state,
+                                           qa_chain_state, memory_state])
 
 block.launch(debug=True)
