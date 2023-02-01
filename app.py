@@ -367,12 +367,14 @@ class ChatWrapper:
                 openai.api_key = api_key
                 if not monologue:
                     if use_embeddings:
-                        output, hidden_text = "What's on your mind?", None
-                        if inp and inp.strip() != "" and docsearch:
-                            docs = docsearch.similarity_search(inp)
-                            output = qa_chain.run(input_documents=docs, question=inp)
+                        if inp and inp.strip() != "":
+                            if docsearch:
+                                docs = docsearch.similarity_search(inp)
+                                output = str(qa_chain.run(input_documents=docs, question=inp))
+                            else:
+                                output, hidden_text = "Please supply some text in the the Embeddings tab.", None
                         else:
-                            output = "Please supply some text in the the Embeddings tab."
+                            output, hidden_text = "What's on your mind?", None
                     else:
                         output, hidden_text = run_chain(chain, inp, capture_hidden_text=trace_chain)
                 else:
