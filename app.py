@@ -183,6 +183,8 @@ def transform_text(desc, express_chain, num_words, formality,
     if literary_style != LITERARY_STYLE_DEFAULT:
         if literary_style == "Prose":
             literary_style_str = "as prose, "
+        if literary_style == "Story":
+            literary_style_str = "as a story, "
         elif literary_style == "Summary":
             literary_style_str = "as a summary, "
         elif literary_style == "Outline":
@@ -195,10 +197,14 @@ def transform_text(desc, express_chain, num_words, formality,
             literary_style_str = "as a haiku, "
         elif literary_style == "Limerick":
             literary_style_str = "as a limerick, "
+        elif literary_style == "Rap":
+            literary_style_str = "as a rap, "
         elif literary_style == "Joke":
             literary_style_str = "as a very funny joke with a setup and punchline, "
         elif literary_style == "Knock-knock":
             literary_style_str = "as a very funny knock-knock joke, "
+        elif literary_style == "FAQ":
+            literary_style_str = "as a FAQ with several questions and answers, "
 
     formatted_prompt = PROMPT_TEMPLATE.format(
         original_words=desc,
@@ -708,7 +714,7 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             "Korean", "Norwegian", "Polish",
             "Portuguese (Brazilian)", "Portuguese (European)", "Romanian", "Russian", "Spanish (European)",
             "Spanish (Mexican)", "Spanish (US)", "Swedish", "Turkish", "Ukrainian", "Welsh",
-            "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon",
+            "emojis", "Gen Z slang", "how the stereotypical Karen would say it", "Klingon", "Neanderthal",
             "Pirate", "Strange Planet expospeak technical talk", "Yoda"],
                                       value=TRANSLATE_TO_DEFAULT)
 
@@ -726,8 +732,8 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
 
     with gr.Tab("Lit style"):
         literary_style_radio = gr.Radio(label="Literary style:", choices=[
-            LITERARY_STYLE_DEFAULT, "Prose", "Summary", "Outline", "Bullets", "Poetry", "Haiku", "Limerick", "Joke",
-            "Knock-knock"],
+            LITERARY_STYLE_DEFAULT, "Prose", "Story", "Summary", "Outline", "Bullets", "Poetry", "Haiku", "Limerick", "Rap",
+            "Joke", "Knock-knock", "FAQ"],
                                         value=LITERARY_STYLE_DEFAULT)
 
         literary_style_radio.change(update_foo,
