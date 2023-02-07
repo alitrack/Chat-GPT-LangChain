@@ -246,6 +246,7 @@ def transform_text(desc, express_chain, num_words, formality,
 def load_chain(tools_list, llm):
     chain = None
     express_chain = None
+    memory = None
     if llm:
         print("\ntools_list", tools_list)
         tool_names = tools_list
