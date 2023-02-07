@@ -102,6 +102,11 @@ def transcribe(aud_inp, whisper_lang):
         result_text = result.text
     return result_text
 
+
+# Temporarily address Wolfram Alpha SSL certificate issue
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
 # TEMPORARY FOR TESTING
 def transcribe_dummy(aud_inp_tb, whisper_lang):
     if aud_inp_tb is None:
