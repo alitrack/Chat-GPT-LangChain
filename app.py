@@ -1,5 +1,6 @@
 import io
 import os
+import ssl
 from contextlib import closing
 from typing import Optional, Tuple
 import datetime
@@ -373,7 +374,7 @@ class ChatWrapper:
             output = "Please paste your OpenAI key from openai.com to use this app. " + str(datetime.datetime.now())
             hidden_text = output
 
-            if chain and chain != "":
+            if chain:
                 # Set OpenAI key
                 import openai
                 openai.api_key = api_key
@@ -521,7 +522,7 @@ def do_html_video_speak(words_to_speak, azure_language):
 def update_selected_tools(widget, state, llm):
     if widget:
         state = widget
-        chain, express_chain = load_chain(state, llm)
+        chain, express_chain, memory = load_chain(state, llm)
         return state, llm, chain, express_chain
 
 
