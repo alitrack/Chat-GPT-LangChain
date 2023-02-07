@@ -1,10 +1,10 @@
 openai==0.26.4
-gradio==3.17.0
+gradio==3.17.1
 google-search-results
-google-api-python-client==2.75.0
+google-api-python-client==2.76.0
 wolframalpha
-langchain==0.0.64
+langchain==0.0.78
 requests==2.28.2
 git+https://github.com/openai/whisper.git
-boto3==1.26.60
+boto3==1.26.65
 faiss-cpu
