@@ -873,5 +873,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
                                   inputs=[openai_api_key_textbox],
                                   outputs=[chain_state, express_chain_state, llm_state, embeddings_state,
                                            qa_chain_state, memory_state])
+    openai_api_key_textbox.submit(set_openai_api_key,
+                                  inputs=[openai_api_key_textbox],
+                                  outputs=[chain_state, express_chain_state, llm_state, embeddings_state,
+                                           qa_chain_state, memory_state])
 
 block.launch(debug=True)
