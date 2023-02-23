@@ -607,9 +607,9 @@ with gr.Blocks(css=".gradio-container {background-color: lightgray}") as block:
             with gr.Column():
                 gr.HTML(
                     """<b><center>GPT + WolframAlpha + Whisper</center></b>
-                    <p><center>New feature: <b>Embeddings</b></center></p>""")
+                    <p><center>Hit Enter after pasting your OpenAI API key</center></p>""")
 
-            openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...)",
+            openai_api_key_textbox = gr.Textbox(placeholder="Paste your OpenAI API key (sk-...) and hit Enter",
                                                 show_label=False, lines=1, type='password')
 
         with gr.Row():
