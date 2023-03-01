@@ -177,12 +177,12 @@ def transform_text(desc, express_chain, num_words, formality,
 
     lang_level_str = ""
     if lang_level != LANG_LEVEL_DEFAULT:
-        lang_level_str = "at a " + lang_level + " level, " if translate_to == TRANSLATE_TO_DEFAULT else ""
+        lang_level_str = "at a level that a person in " + lang_level + " can easily comprehend, " if translate_to == TRANSLATE_TO_DEFAULT else ""
 
     translate_to_str = ""
     if translate_to != TRANSLATE_TO_DEFAULT:
-        translate_to_str = "translated to " + (
-            "" if lang_level == TRANSLATE_TO_DEFAULT else lang_level + " level ") + translate_to + ", "
+        translate_to_str = "translated to " + translate_to + (
+            "" if lang_level == TRANSLATE_TO_DEFAULT else " at a level that a person in " + lang_level + " can easily comprehend") + ", "
 
     literary_style_str = ""
     if literary_style != LITERARY_STYLE_DEFAULT:
